@@ -46,6 +46,8 @@
     <input type="range" id="sTarget" min="200" max="5000" step="50" value="1000">
     <label>⏱️ Tijd per level: <b id="vTime">3:00</b></label>
     <input type="range" id="sTime" min="60" max="420" step="10" value="180">
+    <label>🕳️ Groei van het gat: <b id="vGrow">0.5×</b></label>
+    <input type="range" id="sGrow" min="10" max="150" step="5" value="50">
   </div>
   <button class="btn" onclick="startLevel(1)">Start missie</button>
 </div>
@@ -89,13 +91,15 @@ let hole,objects,particles,score,timeLeft,playing,shake,funText,funTimer,lastT;
 let level,target,lastHonk,cfg,clouds,sizeStep,zoom;
 
 const SET=(()=>{try{return JSON.parse(localStorage.getItem('tb_set'))||{}}catch(e){return {}}})();
-SET.target=SET.target||1000; SET.time=SET.time||180;
+SET.target=SET.target||1000; SET.time=SET.time||180; SET.grow=SET.grow||0.5;
 const fmtT=s=>(s/60|0)+':'+String(s%60|0).padStart(2,'0');
 (function initSettings(){ const st=document.getElementById('sTarget'),ti=document.getElementById('sTime'),vt=document.getElementById('vTarget'),vi=document.getElementById('vTime');
+  const gr=document.getElementById('sGrow'),vg=document.getElementById('vGrow');
   const save=()=>{try{localStorage.setItem('tb_set',JSON.stringify(SET))}catch(e){}};
-  st.value=SET.target; ti.value=SET.time; vt.textContent=SET.target; vi.textContent=fmtT(SET.time);
+  st.value=SET.target; ti.value=SET.time; gr.value=SET.grow*100; vt.textContent=SET.target; vi.textContent=fmtT(SET.time); vg.textContent=SET.grow+'×';
   st.oninput=()=>{SET.target=+st.value; vt.textContent=SET.target; save();};
   ti.oninput=()=>{SET.time=+ti.value; vi.textContent=fmtT(SET.time); save();};
+  gr.oninput=()=>{SET.grow=+gr.value/100; vg.textContent=SET.grow+'×'; save();};
 })();
 function levelCfg(n){ return {
   target: SET.target + (n-1)*Math.round(SET.target*0.5),
@@ -180,7 +184,7 @@ function loop(t){
       const d=Math.hypot(o.x-hole.x,o.y-hole.y);
       if(d < hole.r + o.r*0.5 && o.r < hole.r*0.85){
         o.eaten=true; o.fall=0; score+=o.pts;
-        hole.r=Math.sqrt(hole.r*hole.r + o.r*o.r*0.95);   // oppervlakte-groei: wordt trager naarmate je groeit
+        hole.r=Math.sqrt(hole.r*hole.r + o.r*o.r*SET.grow);   // oppervlakte-groei (instelbaar), trager naarmate je groeit
         shake=Math.min(16,shake+o.r*0.12); eatSound(o);
         if(o.r>24){ funText=pick(CHEERS); funTimer=0.9; }
         for(let k=0;k<8;k++)particles.push({x:o.x,y:o.y,z:rand(0,20),vx:rand(-50,50),vy:rand(-50,50),vz:rand(30,90),life:0.6,c:o.c});
