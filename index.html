@@ -79,10 +79,10 @@ let hole,objects,particles,confetti,score,timeLeft,playing,shake,funText,funTime
 let level,target,lvlTime,lastHonk;
 
 function levelCfg(n){ return {
-  target: 45 + (n-1)*40,
-  time:   Math.max(40, 95 - (n-1)*8),
+  target: 120 + (n-1)*80,
+  time:   Math.max(60, 120 - (n-1)*6),
   movers: Math.min(16, 3 + (n-1)*2),
-  bigN:   18 + n*2,
+  bigN:   24 + n*3,
   fleeMul: 1 + (n-1)*0.18
 }; }
 
@@ -146,7 +146,7 @@ function loop(now){
       if(o.eaten)continue;
       const d=Math.hypot(o.x-hole.x,o.y-hole.y);
       if(d<hole.r && o.r<hole.r*0.92){
-        o.eaten=true; o.fall=0; score+=o.pts; hole.r+=o.r*0.085; shake=Math.min(14,shake+o.r*0.15); gulp(o.r);
+        o.eaten=true; o.fall=0; score+=o.pts; hole.r+=o.r*0.11; shake=Math.min(14,shake+o.r*0.15); gulp(o.r);
         if(o.r>26){ funText=pick(CHEERS); funTimer=0.9; }
         for(let k=0;k<7;k++)particles.push({x:o.x,y:o.y,z:rand(0,20),vx:rand(-50,50),vy:rand(-50,50),vz:rand(30,90),life:0.6,c:o.c});
         updateHUD();
