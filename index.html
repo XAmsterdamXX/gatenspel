@@ -17,7 +17,7 @@
   #barLabel { position:fixed; top:calc(env(safe-area-inset-top,0) + 68px); left:0; right:0; text-align:center; color:#fff; font-weight:700; font-size:13px; text-shadow:0 1px 4px rgba(0,0,0,.6); pointer-events:none; }
   .overlay { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(30,38,24,.92); color:#fff; text-align:center; z-index:10; padding:22px; }
   .overlay h1 { font-size:clamp(34px,10vw,56px); margin-bottom:10px; letter-spacing:-1px; }
-  .overlay p { font-size:clamp(16px,4.5vw,21px); opacity:.92; margin-bottom:26px; max-width:520px; line-height:1.45; }
+  .overlay p { font-size:clamp(16px,4.5vw,21px); opacity:.92; margin-bottom:26px; max-width:540px; line-height:1.45; }
   .btn { background:#a7c957; color:#243016; border:none; padding:18px 46px; font-size:24px; font-weight:800; border-radius:40px; box-shadow:0 6px 20px rgba(0,0,0,.4); }
   .btn:active { transform:scale(.95); }
   #scoreVal,#lvlVal { color:#ffd166; }
@@ -30,13 +30,13 @@
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="hud"><div>Level <span id="lvlVal">1</span></div><div>Score <span id="scoreVal">0</span></div><div id="timer">1:30</div></div>
+<div id="hud"><div>Level <span id="lvlVal">1</span></div><div>Score <span id="scoreVal">0</span></div><div id="timer">3:00</div></div>
 <div id="barWrap"><div id="barFill"></div></div>
 <div id="barLabel"></div>
 
 <div class="overlay" id="startScreen">
   <h1>🕳️🎖️ Tunnel Basis</h1>
-  <p>Je bent een geheime tunnel op de legerbasis! Sleep met je vinger en slok tentjes, jeeps en helikopters op om op te ruimen. Word groot genoeg om het level te halen — maar pas op: de jeeps rijden weg! 🚙💨</p>
+  <p>Jij bent een geheime tunnel op de legerbasis! Sleep rustig met je vinger en ruim de basis op: slok tentjes, jeeps, radars en helikopters op en word gigantisch. Militairen 🚶 en jeeps 🚙 lopen en rijden weg — pak ze te grazen!</p>
   <button class="btn" onclick="startLevel(1)">Start missie</button>
 </div>
 <div class="overlay" id="levelScreen" style="display:none">
@@ -58,72 +58,78 @@ function resize(){ DPR=Math.min(devicePixelRatio||1,2); W=innerWidth; H=innerHei
 addEventListener('resize',resize); resize();
 
 const ISO=0.5;
-function proj(wx,wy,wz){ return { x:(wx-wy), y:(wx+wy)*ISO-(wz||0) }; }
-const WORLD=2000;
+const proj=(wx,wy,wz)=>({ x:(wx-wy), y:(wx+wy)*ISO-(wz||0) });
+const WORLD=2200;
 const rand=(a,b)=>a+Math.random()*(b-a);
 const pick=a=>a[(Math.random()*a.length)|0];
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const now=()=>performance.now();
 
-// [emoji, straal, hoogte, kleur, punten, beweegt?]
-const TYPES=[
-  ['🚧',11,20,'#d9a441',1,0],['🛢️',10,24,'#8a9a5b',1,0],['🪖',9,16,'#4b5320',2,0],
-  ['📦',11,18,'#b08d57',1,0],['🛞',9,14,'#3a3a3a',1,0],['🚩',9,30,'#c1440e',2,0],['🔦',8,14,'#c9c9a0',1,0],
-  ['⛺',22,34,'#6b8e23',3,0],['📡',18,40,'#a9a9a9',4,0],['🥁',12,20,'#8b5a2b',2,0],['🎺',12,22,'#d4af37',3,0],
-  ['🚙',20,20,'#556b2f',4,1],['🚗',19,20,'#6b8e23',4,1],['🏍️',15,18,'#5a6650',3,1],
-  ['🏕️',40,50,'#7d8b4e',10,0],['🚚',30,28,'#4b5320',7,1],['🚁',34,44,'#5a6650',9,0],
-  ['🗼',46,110,'#8a8a6a',18,0],['✈️',44,40,'#9aa7b0',14,0],['🎪',56,70,'#8fa050',18,0]
-];
-const SMALL=TYPES.filter(t=>t[1]<=16), MID=TYPES.filter(t=>t[1]>16&&t[1]<=30), BIG=TYPES.filter(t=>t[1]>30);
+// vaste, niet-bewegende dingen: [emoji, straal, hoogte, kleur, punten]
+const SMALL=[['🚧',11,20,'#d9a441',1],['🛢️',10,24,'#8a9a5b',1],['📦',11,18,'#b08d57',1],['🛞',9,14,'#3a3a3a',1],['🚩',9,30,'#c1440e',2],['🔦',8,14,'#c9c9a0',1],['🪖',9,16,'#4b5320',2],['🎵',8,14,'#d4af37',1]];
+const MID=[['⛺',22,34,'#6b8e23',3],['📡',18,42,'#a9a9a9',4],['🥁',12,20,'#8b5a2b',2],['🎺',12,22,'#d4af37',3],['🛖',24,36,'#7d8b4e',4],['🚏',14,34,'#9aa38a',2]];
+const BIG=[['🏕️',40,50,'#7d8b4e',10],['🚁',34,44,'#5a6650',9],['🗼',46,110,'#8a8a6a',18],['✈️',44,40,'#9aa7b0',14],['🎪',56,70,'#8fa050',18],['🏭',50,80,'#8a8f7a',16]];
+// voertuigen (rijden rond): [emoji, straal, hoogte, kleur, punten, snelheid]
+const VEHIC=[['🚙',20,20,'#556b2f',5,50],['🚗',19,20,'#6b8e23',5,55],['🏍️',15,18,'#5a6650',4,60],['🚚',30,28,'#4b5320',8,38]];
+// militairen (lopen rond)
+const TROOP=[['🚶',9,26,'#4b5320',3],['🧍',9,26,'#6b7d3a',3],['🚶',9,26,'#556b2f',3]];
 
-let hole,objects,particles,confetti,score,timeLeft,playing,shake,funText,funTimer,lastT;
-let level,target,lvlTime,lastHonk;
+let hole,objects,particles,score,timeLeft,playing,shake,funText,funTimer,lastT;
+let level,target,lastHonk,cfg,clouds,sizeStep;
 
 function levelCfg(n){ return {
-  target: 120 + (n-1)*80,
-  time:   Math.max(60, 120 - (n-1)*6),
-  movers: Math.min(16, 3 + (n-1)*2),
-  bigN:   24 + n*3,
-  fleeMul: 1 + (n-1)*0.18
+  target: 240 + (n-1)*140,          // veel hogere doelen -> lange levels
+  time:   Math.max(150, 200 - (n-1)*6),  // ruime tijd (2.5 - 3+ min)
+  vehic:  Math.min(12, 4 + n),
+  troops: Math.min(22, 10 + (n-1)*3),
+  bigN:   26 + n*2,
+  fleeMul:1 + (n-1)*0.22            // iets moeilijker: sneller vluchten
 }; }
 
-function makeBase(cfg){
+function spawn(t,extra){ const o={ x:rand(30,WORLD-30), y:rand(30,WORLD-30), e:t[0], r:t[1], h:t[2], c:t[3], pts:t[4], eaten:false, fall:0, wob:rand(0,6.28) }; Object.assign(o,extra||{}); if(o.move){ const a=rand(0,6.28), s=o.base; o.vx=Math.cos(a)*s; o.vy=Math.sin(a)*s; } objects.push(o); return o; }
+
+function makeBase(){
   objects=[];
-  const add=(n,pool)=>{ for(let i=0;i<n;i++){ const t=pick(pool); const o={ x:rand(30,WORLD-30), y:rand(30,WORLD-30),
-    e:t[0], r:t[1], h:t[2], c:t[3], pts:t[4], move:t[5], eaten:false, fall:0, wob:rand(0,6.28) };
-    if(o.move){ const a=rand(0,6.28), s=rand(35,60); o.vx=Math.cos(a)*s; o.vy=Math.sin(a)*s; o.base=s; }
-    objects.push(o); } };
-  add(150, SMALL);
-  // zorg voor genoeg bewegende voertuigen
-  const movers=TYPES.filter(t=>t[5]);
-  add(cfg.movers, movers);
-  add(60, MID);
-  add(cfg.bigN, BIG);
+  for(let i=0;i<140;i++) spawn(pick(SMALL));
+  for(let i=0;i<65;i++)  spawn(pick(MID));
+  for(let i=0;i<cfg.bigN;i++) spawn(pick(BIG));
+  for(let i=0;i<cfg.vehic;i++){ const t=pick(VEHIC); spawn(t,{move:1,kind:'car',base:t[5]}); }
+  for(let i=0;i<cfg.troops;i++){ const t=pick(TROOP); spawn(t,{move:1,kind:'troop',base:rand(16,26),walk:t[0]}); }
 }
+
+function makeClouds(){ clouds=[]; for(let i=0;i<6;i++) clouds.push({x:rand(0,1), y:rand(0.05,0.32), s:rand(0.7,1.6), spd:rand(0.006,0.018)}); }
+makeClouds();
 
 function startLevel(n){
   startScreen.style.display='none'; levelScreen.style.display='none'; endScreen.style.display='none';
-  level=n; const cfg=levelCfg(n); target=cfg.target; lvlTime=cfg.time; window._cfg=cfg;
+  level=n; cfg=levelCfg(n); target=cfg.target;
   hole={ x:WORLD/2, y:WORLD/2, r:24, tx:WORLD/2, ty:WORLD/2 };
-  makeBase(cfg); particles=[]; confetti=[]; score=0; timeLeft=cfg.time; playing=true; shake=0; funText=''; funTimer=0; lastHonk=0;
-  lastT=performance.now(); updateHUD(); requestAnimationFrame(loop);
+  makeBase(); particles=[]; score=0; timeLeft=cfg.time; playing=true; shake=0; funText=''; funTimer=0; lastHonk=0; sizeStep=0;
+  lastT=now(); updateHUD(); requestAnimationFrame(loop);
 }
 
 function updateHUD(){
   lvlVal.textContent=level; scoreVal.textContent=score;
   const m=timeLeft/60|0,s=timeLeft%60|0; timer.textContent=m+':'+String(s).padStart(2,'0');
-  const p=clamp(score/target,0,1); barFill.style.width=(p*100)+'%';
+  barFill.style.width=(clamp(score/target,0,1)*100)+'%';
   const left=Math.max(0,target-score);
   barLabel.textContent = left>0 ? ('Nog '+left+' punten tot level '+(level+1)) : 'Level gehaald! 🎉';
 }
 
 // ---------- geluid ----------
 let AC;
-function beep(f,d,t,v){ try{ AC=AC||new (window.AudioContext||webkitAudioContext)(); const o=AC.createOscillator(),g=AC.createGain(); o.type=t||'sine'; o.frequency.value=f; g.gain.value=v||0.15; o.connect(g); g.connect(AC.destination); const c=AC.currentTime; o.start(c); o.frequency.exponentialRampToValueAtTime(f*0.5,c+d); g.gain.exponentialRampToValueAtTime(0.001,c+d); o.stop(c+d);}catch(e){} }
-const gulp=r=>beep(180+Math.min(r,400),0.14,'sine',0.18);
-const honk=()=>beep(300,0.09,'square',0.08);
-function fanfare(){ [523,659,784,1047,1319].forEach((f,i)=>setTimeout(()=>beep(f,0.2,'triangle',0.18),i*120)); }
+function tone(f,d,t,v,slideTo){ try{ AC=AC||new (window.AudioContext||webkitAudioContext)(); const o=AC.createOscillator(),g=AC.createGain(); o.type=t||'sine'; o.frequency.value=f; g.gain.value=v||0.15; o.connect(g); g.connect(AC.destination); const c=AC.currentTime; o.start(c); o.frequency.exponentialRampToValueAtTime(slideTo||f*0.5,c+d); g.gain.exponentialRampToValueAtTime(0.001,c+d); o.stop(c+d);}catch(e){} }
+const sPop=()=>tone(rand(560,720),0.09,'triangle',0.12,300);
+const sGulp=r=>tone(200+Math.min(r,300),0.14,'sine',0.16,120);
+const sClank=()=>{ tone(340,0.06,'square',0.1,300); setTimeout(()=>tone(230,0.08,'square',0.09,160),55); };
+const sWhomp=()=>tone(120,0.32,'sine',0.22,55);
+const sTroop=()=>{ tone(500,0.1,'triangle',0.12,700); setTimeout(()=>tone(760,0.12,'triangle',0.1,500),90); };
+const sHonk=()=>tone(300,0.09,'square',0.08,300);
+const sChime=()=>{ tone(880,0.16,'sine',0.14,880); setTimeout(()=>tone(1245,0.2,'sine',0.12,1245),110); };
+function fanfare(){ [523,659,784,1047,1319,1568].forEach((f,i)=>setTimeout(()=>tone(f,0.22,'triangle',0.18,f),i*130)); }
+function eatSound(o){ if(o.kind==='troop')sTroop(); else if(o.kind==='car')sClank(); else if(o.r>30)sWhomp(); else if(o.r>16)sGulp(o.r); else sPop(); }
 
-// ---------- besturing ----------
+// ---------- besturing (rustiger) ----------
 let dragging=false,dx0=0,dy0=0;
 const pt=e=>{const t=e.touches?e.touches[0]:e; return{x:t.clientX,y:t.clientY};};
 cv.addEventListener('touchstart',e=>{e.preventDefault(); if(AC&&AC.state==='suspended')AC.resume(); const p=pt(e); dragging=true; dx0=p.x; dy0=p.y;},{passive:false});
@@ -132,23 +138,25 @@ cv.addEventListener('touchend',e=>{e.preventDefault(); dragging=false;},{passive
 cv.addEventListener('mousedown',e=>{dragging=true; dx0=e.clientX; dy0=e.clientY;});
 addEventListener('mousemove',e=>{if(!dragging)return; mv(e.clientX-dx0,e.clientY-dy0); dx0=e.clientX; dy0=e.clientY;});
 addEventListener('mouseup',()=>dragging=false);
-function mv(sdx,sdy){ if(!playing)return; const sp=2.2; const wx=(sdx*0.5+sdy/ISO*0.5), wy=(-sdx*0.5+sdy/ISO*0.5); hole.tx=clamp(hole.tx+wx*sp,hole.r,WORLD-hole.r); hole.ty=clamp(hole.ty+wy*sp,hole.r,WORLD-hole.r); }
+const SENS=1.35;   // lager = rustiger
+function mv(sdx,sdy){ if(!playing)return; const wx=(sdx*0.5+sdy/ISO*0.5), wy=(-sdx*0.5+sdy/ISO*0.5); hole.tx=clamp(hole.tx+wx*SENS,hole.r,WORLD-hole.r); hole.ty=clamp(hole.ty+wy*SENS,hole.r,WORLD-hole.r); }
 
-const CHEERS=['Hap! 😋','Boem! 💥','Opgeruimd!','Mmm!','Nog meer!','Gulp!','Goed bezig! 🎖️'];
+const CHEERS=['Hap! 😋','Boem! 💥','Opgeruimd!','Mmm!','Nog meer!','Gulp!','Goed bezig! 🎖️','Wauw! 🤩'];
 
-function loop(now){
-  const dt=Math.min((now-lastT)/1000,0.05); lastT=now;
+function loop(t){
+  const dt=Math.min((t-lastT)/1000,0.05); lastT=t;
   if(playing){
     timeLeft-=dt; if(timeLeft<=0){ timeLeft=0; return gameOver(); }
-    hole.x+=(hole.tx-hole.x)*0.16; hole.y+=(hole.ty-hole.y)*0.16;
+    hole.x+=(hole.tx-hole.x)*0.12; hole.y+=(hole.ty-hole.y)*0.12;   // iets soepeler/rustiger
     updateMovers(dt);
     for(const o of objects){
       if(o.eaten)continue;
       const d=Math.hypot(o.x-hole.x,o.y-hole.y);
       if(d<hole.r && o.r<hole.r*0.92){
-        o.eaten=true; o.fall=0; score+=o.pts; hole.r+=o.r*0.11; shake=Math.min(14,shake+o.r*0.15); gulp(o.r);
+        o.eaten=true; o.fall=0; score+=o.pts; hole.r+=o.r*0.10; shake=Math.min(14,shake+o.r*0.15); eatSound(o);
         if(o.r>26){ funText=pick(CHEERS); funTimer=0.9; }
         for(let k=0;k<7;k++)particles.push({x:o.x,y:o.y,z:rand(0,20),vx:rand(-50,50),vy:rand(-50,50),vz:rand(30,90),life:0.6,c:o.c});
+        const step=Math.floor(hole.r/25); if(step>sizeStep){ sizeStep=step; sChime(); }
         updateHUD();
         if(score>=target){ return levelDone(); }
       }
@@ -158,71 +166,72 @@ function loop(now){
     particles=particles.filter(p=>p.life>0);
     if(shake>0)shake=Math.max(0,shake-dt*40);
     if(funTimer>0)funTimer-=dt;
+    for(const c of clouds){ c.x+=c.spd*dt; if(c.x>1.3)c.x=-0.3; }
   }
   draw(); requestAnimationFrame(loop);
 }
 
 function updateMovers(dt){
-  const cfg=window._cfg||{fleeMul:1};
   const movers=objects.filter(o=>o.move&&!o.eaten);
   for(const o of movers){
-    // wegrijden voor het gat
     const dxh=o.x-hole.x, dyh=o.y-hole.y, dh=Math.hypot(dxh,dyh)||1;
-    if(dh<300 && hole.r>o.r*0.4){ const f=(300-dh)/300*260*cfg.fleeMul; o.vx+=dxh/dh*f*dt; o.vy+=dyh/dh*f*dt; }
-    // snelheidslimiet
-    let s=Math.hypot(o.vx,o.vy); const max=o.base*(1.3)*cfg.fleeMul + (dh<300?70:0);
+    const range=o.kind==='troop'?240:300;
+    if(dh<range && hole.r>o.r*0.4){ const f=(range-dh)/range*240*cfg.fleeMul; o.vx+=dxh/dh*f*dt; o.vy+=dyh/dh*f*dt; }
+    let s=Math.hypot(o.vx,o.vy); const max=o.base*1.3*cfg.fleeMul + (dh<range?60:0);
     if(s>max){ o.vx=o.vx/s*max; o.vy=o.vy/s*max; }
     o.x+=o.vx*dt; o.y+=o.vy*dt;
-    // stuiter tegen randen
     if(o.x<20){o.x=20;o.vx=Math.abs(o.vx);} if(o.x>WORLD-20){o.x=WORLD-20;o.vx=-Math.abs(o.vx);}
     if(o.y<20){o.y=20;o.vy=Math.abs(o.vy);} if(o.y>WORLD-20){o.y=WORLD-20;o.vy=-Math.abs(o.vy);}
+    if(o.kind==='troop'){ o.e = (dh<range && hole.r>o.r*0.4) ? '🏃' : o.walk; }  // rennen bij gevaar
   }
-  // botsende jeeps die wegrijden
-  for(let i=0;i<movers.length;i++)for(let j=i+1;j<movers.length;j++){
-    const a=movers[i],b=movers[j]; const dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy)||1, min=a.r+b.r+6;
-    if(d<min){ const nx=dx/d,ny=dy/d, push=(min-d)/2;
-      a.x-=nx*push; a.y-=ny*push; b.x+=nx*push; b.y+=ny*push;
-      const sa=Math.hypot(a.vx,a.vy)||40, sb=Math.hypot(b.vx,b.vy)||40;
-      a.vx=-nx*sa; a.vy=-ny*sa; b.vx=nx*sb; b.vy=ny*sb;   // rij van elkaar weg
-      if(lastHonk<=0){ honk(); lastHonk=0.25; }
-    }
+  const cars=movers.filter(o=>o.kind==='car');
+  for(let i=0;i<cars.length;i++)for(let j=i+1;j<cars.length;j++){
+    const a=cars[i],b=cars[j]; const dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy)||1, min=a.r+b.r+6;
+    if(d<min){ const nx=dx/d,ny=dy/d, push=(min-d)/2; a.x-=nx*push;a.y-=ny*push;b.x+=nx*push;b.y+=ny*push;
+      const sa=Math.hypot(a.vx,a.vy)||40, sb=Math.hypot(b.vx,b.vy)||40; a.vx=-nx*sa;a.vy=-ny*sa;b.vx=nx*sb;b.vy=ny*sb;
+      if(lastHonk<=0){ sHonk(); lastHonk=0.25; } }
   }
   if(lastHonk>0)lastHonk-=dt;
 }
 
 function draw(){
-  const cx=W/2,cy=H/2; const p0=hole?proj(hole.x,hole.y,0):{x:0,y:0};
+  const t=now(), cx=W/2,cy=H/2; const p0=hole?proj(hole.x,hole.y,0):{x:0,y:0};
   const shX=shake?rand(-shake,shake):0, shY=shake?rand(-shake,shake):0;
   const ox=cx-p0.x+shX, oy=cy-p0.y+shY;
   const S=(wx,wy,wz)=>{const p=proj(wx,wy,wz); return{x:p.x+ox,y:p.y+oy};};
 
-  const sky=ctx.createLinearGradient(0,0,0,H); sky.addColorStop(0,'#b7c4a0'); sky.addColorStop(1,'#d8dcc0');
+  const sky=ctx.createLinearGradient(0,0,0,H); sky.addColorStop(0,'#a7bcd6'); sky.addColorStop(1,'#d8dcc0');
   ctx.fillStyle=sky; ctx.fillRect(0,0,W,H);
+  // drijvende wolken
+  for(const c of clouds){ const bx=c.x*W, by=c.y*H, r=34*c.s; ctx.fillStyle='rgba(255,255,255,.7)';
+    for(const [ex,ey,er] of [[-r,0,r],[0,-r*.6,r*1.2],[r,0,r],[r*.4,r*.3,r*.8],[-r*.5,r*.25,r*.7]]){ ctx.beginPath(); ctx.ellipse(bx+ex,by+ey,er,er*.7,0,0,6.2832); ctx.fill(); } }
 
-  // grond (camo-groen)
+  // grond
   const c0=S(0,0),c1=S(WORLD,0),c2=S(WORLD,WORLD),c3=S(0,WORLD);
   ctx.beginPath(); ctx.moveTo(c0.x,c0.y); ctx.lineTo(c1.x,c1.y); ctx.lineTo(c2.x,c2.y); ctx.lineTo(c3.x,c3.y); ctx.closePath();
   ctx.fillStyle='#6b7d3a'; ctx.fill();
   // camo-vlekken
-  ctx.fillStyle='rgba(74,86,45,.55)';
-  for(let gx=120;gx<WORLD;gx+=340)for(let gy=200;gy<WORLD;gy+=300){ const s=S(gx,gy); ctx.beginPath(); ctx.save(); ctx.translate(s.x,s.y); ctx.scale(1,ISO); ctx.arc(0,0,70,0,6.2832); ctx.fill(); ctx.restore(); }
-  ctx.fillStyle='rgba(194,178,128,.4)';
-  for(let gx=260;gx<WORLD;gx+=360)for(let gy=90;gy<WORLD;gy+=320){ const s=S(gx,gy); ctx.beginPath(); ctx.save(); ctx.translate(s.x,s.y); ctx.scale(1,ISO); ctx.arc(0,0,50,0,6.2832); ctx.fill(); ctx.restore(); }
-  // paden
-  ctx.strokeStyle='rgba(210,200,150,.35)'; ctx.lineWidth=14;
-  ctx.beginPath(); for(let g=0;g<=WORLD;g+=400){ let a=S(g,0),b=S(g,WORLD); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); let c=S(0,g),d=S(WORLD,g); ctx.moveTo(c.x,c.y); ctx.lineTo(d.x,d.y);} ctx.stroke();
+  ctx.fillStyle='rgba(74,86,45,.5)';
+  for(let gx=120;gx<WORLD;gx+=360)for(let gy=200;gy<WORLD;gy+=320){ const s=S(gx,gy); ctx.save(); ctx.translate(s.x,s.y); ctx.scale(1,ISO); ctx.beginPath(); ctx.arc(0,0,72,0,6.2832); ctx.fill(); ctx.restore(); }
+  ctx.fillStyle='rgba(194,178,128,.38)';
+  for(let gx=260;gx<WORLD;gx+=380)for(let gy=90;gy<WORLD;gy+=330){ const s=S(gx,gy); ctx.save(); ctx.translate(s.x,s.y); ctx.scale(1,ISO); ctx.beginPath(); ctx.arc(0,0,52,0,6.2832); ctx.fill(); ctx.restore(); }
+  // startbaan met strepen
+  ctx.strokeStyle='rgba(60,60,60,.35)'; ctx.lineWidth=64; let ra=S(300,1600),rb=S(1900,1600); ctx.beginPath(); ctx.moveTo(ra.x,ra.y); ctx.lineTo(rb.x,rb.y); ctx.stroke();
+  ctx.strokeStyle='rgba(255,255,220,.7)'; ctx.lineWidth=4; ctx.setLineDash([18,22]); ctx.beginPath(); ctx.moveTo(ra.x,ra.y); ctx.lineTo(rb.x,rb.y); ctx.stroke(); ctx.setLineDash([]);
+  // helikopterplatform (H)
+  const hp=S(600,600); ctx.save(); ctx.translate(hp.x,hp.y); ctx.scale(1,ISO); ctx.fillStyle='rgba(40,50,30,.5)'; ctx.beginPath(); ctx.arc(0,0,80,0,6.2832); ctx.fill(); ctx.strokeStyle='rgba(255,255,220,.8)'; ctx.lineWidth=8; ctx.beginPath(); ctx.arc(0,0,80,0,6.2832); ctx.stroke(); ctx.fillStyle='rgba(255,255,220,.85)'; ctx.fillRect(-30,-40,14,80); ctx.fillRect(16,-40,14,80); ctx.fillRect(-16,-8,32,16); ctx.restore();
 
   if(!hole)return;
 
   const items=objects.filter(o=>!(o.eaten&&o.fall>=1)).slice();
   items.push({isHole:true,x:hole.x,y:hole.y});
   items.sort((a,b)=>(a.x+a.y)-(b.x+b.y));
-  for(const it of items){ if(it.isHole)drawHole(S); else drawObj(it,S); }
+  for(const it of items){ if(it.isHole)drawHole(S); else drawObj(it,S,t); }
 
   for(const p of particles){ const s=S(p.x,p.y,p.z); ctx.globalAlpha=Math.max(0,p.life*1.6); ctx.fillStyle=p.c; ctx.fillRect(s.x-3,s.y-3,6,6); }
   ctx.globalAlpha=1;
 
-  if(funTimer>0){ ctx.globalAlpha=Math.min(1,funTimer*2); ctx.fillStyle='#fff'; ctx.strokeStyle='rgba(0,0,0,.5)'; ctx.lineWidth=4; ctx.font='800 32px -apple-system,sans-serif'; ctx.textAlign='center'; const hp=S(hole.x,hole.y,hole.r+40); ctx.strokeText(funText,hp.x,hp.y); ctx.fillText(funText,hp.x,hp.y); ctx.globalAlpha=1; ctx.textAlign='left'; }
+  if(funTimer>0){ ctx.globalAlpha=Math.min(1,funTimer*2); ctx.fillStyle='#fff'; ctx.strokeStyle='rgba(0,0,0,.5)'; ctx.lineWidth=4; ctx.font='800 32px -apple-system,sans-serif'; ctx.textAlign='center'; const p=S(hole.x,hole.y,hole.r+40); ctx.strokeText(funText,p.x,p.y); ctx.fillText(funText,p.x,p.y); ctx.globalAlpha=1; ctx.textAlign='left'; }
 }
 
 function drawHole(S){
@@ -235,29 +244,31 @@ function drawHole(S){
   ctx.restore();
 }
 
-function drawObj(o,S){
-  const wob=o.eaten?0:Math.sin(performance.now()/500+o.wob)*1.2;
+function drawObj(o,S,t){
+  const fly=(o.e==='🚁'||o.e==='✈️');
+  const bob=o.eaten?0:(o.kind==='troop'?Math.abs(Math.sin(t/160+o.wob))*4:Math.sin(t/500+o.wob)*1.4);
+  const hover=fly&&!o.eaten?18+Math.sin(t/300+o.wob)*7:0;
   const scale=o.eaten?Math.max(0,1-o.fall):1; if(scale<=0.02)return;
-  const h=o.h*scale, r=o.r*scale, bx=o.x, by=o.y;
-  const A=S(bx-r,by-r,0),B=S(bx+r,by-r,0),C=S(bx+r,by+r,0),D=S(bx-r,by+r,0);
+  const h=(o.h+hover)*scale, r=o.r*scale, bx=o.x, by=o.y;
+  const B=S(bx+r,by-r,0),C=S(bx+r,by+r,0),D=S(bx-r,by+r,0);
   const At=S(bx-r,by-r,h),Bt=S(bx+r,by-r,h),Ct=S(bx+r,by+r,h),Dt=S(bx-r,by+r,h);
   const shade=(hex,f)=>{ const n=parseInt(hex.slice(1),16); return`rgb(${(n>>16)*f|0},${((n>>8)&255)*f|0},${(n&255)*f|0})`; };
   const sh=S(bx,by,0); ctx.fillStyle='rgba(0,0,0,.15)'; ctx.save(); ctx.translate(sh.x,sh.y+3); ctx.scale(1,ISO); ctx.beginPath(); ctx.arc(0,0,r*1.1,0,6.2832); ctx.fill(); ctx.restore();
-  ctx.fillStyle=shade(o.c,.65); ctx.beginPath(); ctx.moveTo(B.x,B.y+wob); ctx.lineTo(C.x,C.y+wob); ctx.lineTo(Ct.x,Ct.y+wob); ctx.lineTo(Bt.x,Bt.y+wob); ctx.fill();
-  ctx.fillStyle=shade(o.c,.5); ctx.beginPath(); ctx.moveTo(D.x,D.y+wob); ctx.lineTo(C.x,C.y+wob); ctx.lineTo(Ct.x,Ct.y+wob); ctx.lineTo(Dt.x,Dt.y+wob); ctx.fill();
-  ctx.fillStyle=shade(o.c,1); ctx.beginPath(); ctx.moveTo(At.x,At.y+wob); ctx.lineTo(Bt.x,Bt.y+wob); ctx.lineTo(Ct.x,Ct.y+wob); ctx.lineTo(Dt.x,Dt.y+wob); ctx.closePath(); ctx.fill();
-  if(scale>0.4){ const top=S(bx,by,h); ctx.font=(r*1.5|0)+'px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(o.e,top.x,top.y-r*0.3+wob); ctx.textAlign='left'; ctx.textBaseline='alphabetic'; }
+  if(!fly){
+    ctx.fillStyle=shade(o.c,.65); ctx.beginPath(); ctx.moveTo(B.x,B.y+bob); ctx.lineTo(C.x,C.y+bob); ctx.lineTo(Ct.x,Ct.y+bob); ctx.lineTo(Bt.x,Bt.y+bob); ctx.fill();
+    ctx.fillStyle=shade(o.c,.5); ctx.beginPath(); ctx.moveTo(D.x,D.y+bob); ctx.lineTo(C.x,C.y+bob); ctx.lineTo(Ct.x,Ct.y+bob); ctx.lineTo(Dt.x,Dt.y+bob); ctx.fill();
+    ctx.fillStyle=shade(o.c,1); ctx.beginPath(); ctx.moveTo(At.x,At.y+bob); ctx.lineTo(Bt.x,Bt.y+bob); ctx.lineTo(Ct.x,Ct.y+bob); ctx.lineTo(Dt.x,Dt.y+bob); ctx.closePath(); ctx.fill();
+  }
+  if(scale>0.35){ const top=S(bx,by,h); ctx.font=(r*1.6|0)+'px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(o.e,top.x,top.y-r*0.3+bob); ctx.textAlign='left'; ctx.textBaseline='alphabetic'; }
 }
 
 function levelDone(){
   playing=false; fanfare();
   lvlTitle.textContent='Level '+level+' geklaard! 🎖️';
-  lvlMsg.innerHTML='Top gedaan! Je scoorde <b>'+score+'</b> punten.<br>Klaar voor level <b>'+(level+1)+'</b>? Het wordt lastiger! 💪';
-  lvlBtn.textContent='Level '+(level+1)+' →';
-  lvlBtn.onclick=()=>startLevel(level+1);
+  lvlMsg.innerHTML='Knap gedaan! Je scoorde <b>'+score+'</b> punten en je tunnel werd <b>'+Math.round(hole.r)+'</b> groot.<br>Level <b>'+(level+1)+'</b> wordt weer wat lastiger! 💪';
+  lvlBtn.textContent='Level '+(level+1)+' →'; lvlBtn.onclick=()=>startLevel(level+1);
   levelScreen.style.display='flex';
 }
-
 function gameOver(){
   playing=false;
   endTitle.textContent='Tijd om! ⏰';
