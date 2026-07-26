@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Gatenspel</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent; }
+  html,body { width:100%; height:100%; overflow:hidden; background:#1a1a2e; font-family:-apple-system,system-ui,sans-serif; touch-action:none; }
+  #game { display:block; width:100%; height:100%; }
+  #hud { position:fixed; top:env(safe-area-inset-top,0); left:0; right:0; padding:14px 20px; display:flex; justify-content:space-between; align-items:center; color:#fff; font-weight:800; font-size:22px; text-shadow:0 2px 6px rgba(0,0,0,.5); pointer-events:none; }
+  #timer { font-variant-numeric:tabular-nums; }
+  .overlay { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(20,20,40,.88); color:#fff; text-align:center; z-index:10; }
+  .overlay h1 { font-size:52px; margin-bottom:8px; letter-spacing:-1px; }
+  .overlay p { font-size:20px; opacity:.85; margin-bottom:28px; max-width:80%; line-height:1.4; }
+  .btn { background:#ff5a5f; color:#fff; border:none; padding:18px 44px; font-size:24px; font-weight:800; border-radius:40px; box-shadow:0 6px 20px rgba(255,90,95,.5); }
+  .btn:active { transform:scale(.95); }
+  #score span { color:#ffd166; }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="hud">
+  <div id="score">Score <span id="scoreVal">0</span></div>
+  <div id="timer">2:00</div>
+</div>
+<div class="overlay" id="startScreen">
+  <h1>🕳️ Gatenspel</h1>
+  <p>Sleep met je vinger om het gat te bewegen. Slok alles op wat kleiner is dan jij en word steeds groter!</p>
+  <button class="btn" onclick="startGame()">Spelen</button>
+</div>
+<div class="overlay" id="endScreen" style="display:none">
+  <h1 id="endTitle">Tijd om!</h1>
+  <p id="endMsg"></p>
+  <button class="btn" onclick="startGame()">Opnieuw</button>
+</div>
+
+<script>
+const cv = document.getElementById('game');
+const ctx = cv.getContext('2d');
+let W, H, DPR;
+function resize(){
+  DPR = Math.min(window.devicePixelRatio||1, 2);
+  W = window.innerWidth; H = window.innerHeight;
+  cv.width = W*DPR; cv.height = H*DPR;
+  cv.style.width = W+'px'; cv.style.height = H+'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+window.addEventListener('resize', resize); resize();
+
+// ---- game state ----
+let world, hole, objects, particles, score, timeLeft, playing, lastT;
+const WORLD = 2400; // wereldgrootte (vierkant)
+
+const COLORS = ['#ff9f1c','#2ec4b6','#e71d36','#4361ee','#f72585','#3a86ff','#8338ec','#06d6a0','#ffbe0b'];
+
+function rand(a,b){ return a + Math.random()*(b-a); }
+
+function makeObjects(){
+  objects = [];
+  // kleine dingen (struiken, mensen, bankjes)
+  for(let i=0;i<220;i++) objects.push(mkObj(rand(6,11), 'small'));
+  // middel (auto's, bomen)
+  for(let i=0;i<90;i++) objects.push(mkObj(rand(14,22), 'mid'));
+  // groot (bussen, huizen)
+  for(let i=0;i<28;i++) objects.push(mkObj(rand(28,46), 'big'));
+}
+function mkObj(r, kind){
+  return {
+    x: rand(40, WORLD-40), y: rand(40, WORLD-40),
+    r, kind,
+    c: COLORS[(Math.random()*COLORS.length)|0],
+    rot: rand(0,Math.PI*2),
+    eaten:false, fall:0
+  };
+}
+
+function startGame(){
+  document.getElementById('startScreen').style.display='none';
+  document.getElementById('endScreen').style.display='none';
+  hole = { x: WORLD/2, y: WORLD/2, r: 26, tx: WORLD/2, ty: WORLD/2 };
+  makeObjects();
+  particles = [];
+  score = 0; timeLeft = 120; playing = true; lastT = performance.now();
+  updateHUD();
+  requestAnimationFrame(loop);
+}
+
+function updateHUD(){
+  document.getElementById('scoreVal').textContent = score;
+  const m = Math.floor(timeLeft/60), s = Math.floor(timeLeft%60);
+  document.getElementById('timer').textContent = m+':'+String(s).padStart(2,'0');
+}
+
+// ---- input: sleep waar dan ook om richting te geven ----
+let dragging=false, dragX=0, dragY=0;
+function pointer(e){ const t=e.touches?e.touches[0]:e; return {x:t.clientX, y:t.clientY}; }
+cv.addEventListener('touchstart', e=>{ e.preventDefault(); const p=pointer(e); dragging=true; dragX=p.x; dragY=p.y; }, {passive:false});
+cv.addEventListener('touchmove', e=>{ e.preventDefault(); if(!dragging)return; const p=pointer(e); moveBy(p.x-dragX, p.y-dragY); dragX=p.x; dragY=p.y; }, {passive:false});
+cv.addEventListener('touchend', e=>{ e.preventDefault(); dragging=false; }, {passive:false});
+// muis voor testen op computer
+cv.addEventListener('mousedown', e=>{ dragging=true; dragX=e.clientX; dragY=e.clientY; });
+window.addEventListener('mousemove', e=>{ if(!dragging)return; moveBy(e.clientX-dragX, e.clientY-dragY); dragX=e.clientX; dragY=e.clientY; });
+window.addEventListener('mouseup', ()=> dragging=false);
+function moveBy(dx,dy){
+  if(!playing||!hole) return;
+  const sp = 2.4; // gevoeligheid
+  hole.tx = Math.max(hole.r, Math.min(WORLD-hole.r, hole.tx + dx*sp));
+  hole.ty = Math.max(hole.r, Math.min(WORLD-hole.r, hole.ty + dy*sp));
+}
+
+function loop(now){
+  const dt = Math.min((now-lastT)/1000, 0.05); lastT = now;
+  if(playing){
+    timeLeft -= dt;
+    if(timeLeft<=0){ timeLeft=0; endGame(); }
+    // gat volgt doel soepel
+    hole.x += (hole.tx-hole.x)*0.18;
+    hole.y += (hole.ty-hole.y)*0.18;
+
+    // eten
+    for(const o of objects){
+      if(o.eaten) continue;
+      const dx=o.x-hole.x, dy=o.y-hole.y, d=Math.hypot(dx,dy);
+      if(d < hole.r && o.r < hole.r*0.9){
+        o.eaten=true; o.fall=0;
+        score += Math.max(1, Math.round(o.r/4));
+        // groei: kleiner effect naarmate je groter bent
+        hole.r += o.r*0.09;
+        for(let k=0;k<6;k++) particles.push({x:o.x,y:o.y,vx:rand(-40,40),vy:rand(-40,40),life:0.5,c:o.c});
+        updateHUD();
+      }
+    }
+    // vallende (opgeslokte) objecten animeren
+    for(const o of objects){ if(o.eaten && o.fall<1){ o.fall += dt*3;
+      o.x += (hole.x-o.x)*0.25; o.y += (hole.y-o.y)*0.25; } }
+    for(const p of particles){ p.x+=p.vx*dt; p.y+=p.vy*dt; p.life-=dt; }
+    particles = particles.filter(p=>p.life>0);
+  }
+  draw();
+  requestAnimationFrame(loop);
+}
+
+function draw(){
+  // camera gecentreerd op gat
+  const camX = hole ? hole.x - W/2 : 0;
+  const camY = hole ? hole.y - H/2 : 0;
+
+  ctx.fillStyle = '#3fa34d'; // gras
+  ctx.fillRect(0,0,W,H);
+
+  // straten-raster
+  ctx.strokeStyle = 'rgba(255,255,255,.12)'; ctx.lineWidth=18;
+  const grid=300;
+  ctx.beginPath();
+  for(let gx=0; gx<=WORLD; gx+=grid){ const sx=gx-camX; ctx.moveTo(sx,-camY); ctx.lineTo(sx,WORLD-camY); }
+  for(let gy=0; gy<=WORLD; gy+=grid){ const sy=gy-camY; ctx.moveTo(-camX,sy); ctx.lineTo(WORLD-camX,sy); }
+  ctx.stroke();
+
+  // rand van de wereld
+  ctx.strokeStyle='rgba(0,0,0,.25)'; ctx.lineWidth=8;
+  ctx.strokeRect(-camX,-camY,WORLD,WORLD);
+
+  if(!hole){ return; }
+
+  // objecten (niet opgeslokte eerst)
+  for(const o of objects){
+    if(o.eaten && o.fall>=1) continue;
+    const sx=o.x-camX, sy=o.y-camY;
+    if(sx<-60||sy<-60||sx>W+60||sy>H+60) continue;
+    ctx.save();
+    ctx.translate(sx,sy); ctx.rotate(o.rot);
+    if(o.eaten){ const s=1-o.fall; ctx.scale(s,s); ctx.globalAlpha=s; }
+    ctx.fillStyle=o.c;
+    roundRect(-o.r,-o.r,o.r*2,o.r*2, o.r*0.35);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // het gat
+  const hx=hole.x-camX, hy=hole.y-camY;
+  ctx.save();
+  const g=ctx.createRadialGradient(hx,hy,hole.r*0.3, hx,hy,hole.r);
+  g.addColorStop(0,'#000'); g.addColorStop(0.8,'#000'); g.addColorStop(1,'#1a1a2e');
+  ctx.fillStyle=g;
+  ctx.beginPath(); ctx.arc(hx,hy,hole.r,0,Math.PI*2); ctx.fill();
+  // dunne rand
+  ctx.strokeStyle='rgba(255,255,255,.25)'; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.arc(hx,hy,hole.r,0,Math.PI*2); ctx.stroke();
+  ctx.restore();
+
+  // deeltjes
+  for(const p of particles){
+    ctx.globalAlpha = Math.max(0,p.life*2);
+    ctx.fillStyle=p.c;
+    ctx.fillRect(p.x-camX-3, p.y-camY-3, 6,6);
+  }
+  ctx.globalAlpha=1;
+}
+
+function roundRect(x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+
+function endGame(){
+  playing=false;
+  document.getElementById('endTitle').textContent='Tijd om! 🎉';
+  document.getElementById('endMsg').innerHTML = 'Je hebt <b>'+score+'</b> punten gescoord!<br>Je gat werd '+Math.round(hole.r)+' groot.';
+  document.getElementById('endScreen').style.display='flex';
+}
+</script>
+</body>
+</html>
