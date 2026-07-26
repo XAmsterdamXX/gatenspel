@@ -5,35 +5,50 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Gatenspel 3D</title>
+<title>Tunnel Basis 🕳️🎖️</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent; }
-  html,body { width:100%; height:100%; overflow:hidden; background:#87ceeb; font-family:-apple-system,system-ui,sans-serif; touch-action:none; }
+  html,body { width:100%; height:100%; overflow:hidden; background:#3b4a2f; font-family:-apple-system,system-ui,sans-serif; touch-action:none; }
   #game { display:block; width:100%; height:100%; }
-  #hud { position:fixed; top:env(safe-area-inset-top,0); left:0; right:0; padding:14px 20px; display:flex; justify-content:space-between; align-items:center; color:#fff; font-weight:800; font-size:22px; text-shadow:0 2px 6px rgba(0,0,0,.55); pointer-events:none; }
-  #timer { font-variant-numeric:tabular-nums; background:rgba(0,0,0,.25); padding:4px 14px; border-radius:20px; }
-  #size { position:fixed; bottom:calc(env(safe-area-inset-bottom,0) + 14px); left:0; right:0; text-align:center; color:#fff; font-weight:800; font-size:16px; text-shadow:0 2px 6px rgba(0,0,0,.55); pointer-events:none; }
-  .overlay { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(20,20,40,.9); color:#fff; text-align:center; z-index:10; padding:20px; }
-  .overlay h1 { font-size:clamp(38px,11vw,60px); margin-bottom:10px; letter-spacing:-1px; }
-  .overlay p { font-size:clamp(17px,4.5vw,21px); opacity:.9; margin-bottom:28px; max-width:520px; line-height:1.45; }
-  .btn { background:#ff5a5f; color:#fff; border:none; padding:18px 46px; font-size:24px; font-weight:800; border-radius:40px; box-shadow:0 6px 20px rgba(255,90,95,.5); }
+  #hud { position:fixed; top:env(safe-area-inset-top,0); left:0; right:0; padding:12px 18px; display:flex; justify-content:space-between; align-items:center; color:#fff; font-weight:800; font-size:20px; text-shadow:0 2px 6px rgba(0,0,0,.6); pointer-events:none; }
+  #timer { font-variant-numeric:tabular-nums; background:rgba(0,0,0,.3); padding:3px 12px; border-radius:16px; }
+  #barWrap { position:fixed; top:calc(env(safe-area-inset-top,0) + 50px); left:18px; right:18px; height:16px; background:rgba(0,0,0,.3); border-radius:10px; overflow:hidden; box-shadow:inset 0 1px 3px rgba(0,0,0,.4); pointer-events:none; }
+  #barFill { height:100%; width:0%; background:linear-gradient(90deg,#a7c957,#ffd166,#f2a541); transition:width .18s; border-radius:10px; }
+  #barLabel { position:fixed; top:calc(env(safe-area-inset-top,0) + 68px); left:0; right:0; text-align:center; color:#fff; font-weight:700; font-size:13px; text-shadow:0 1px 4px rgba(0,0,0,.6); pointer-events:none; }
+  .overlay { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(30,38,24,.92); color:#fff; text-align:center; z-index:10; padding:22px; }
+  .overlay h1 { font-size:clamp(34px,10vw,56px); margin-bottom:10px; letter-spacing:-1px; }
+  .overlay p { font-size:clamp(16px,4.5vw,21px); opacity:.92; margin-bottom:26px; max-width:520px; line-height:1.45; }
+  .btn { background:#a7c957; color:#243016; border:none; padding:18px 46px; font-size:24px; font-weight:800; border-radius:40px; box-shadow:0 6px 20px rgba(0,0,0,.4); }
   .btn:active { transform:scale(.95); }
-  #scoreVal { color:#ffd166; }
+  #scoreVal,#lvlVal { color:#ffd166; }
+  .party { font-size:46px; letter-spacing:6px; margin-bottom:6px; }
+  .party span { display:inline-block; animation:pop 1s ease-in-out infinite; }
+  .party span:nth-child(2){animation-delay:.15s} .party span:nth-child(3){animation-delay:.3s}
+  .party span:nth-child(4){animation-delay:.45s} .party span:nth-child(5){animation-delay:.6s}
+  @keyframes pop { 0%,100%{transform:translateY(0) rotate(-6deg)} 50%{transform:translateY(-16px) rotate(6deg)} }
 </style>
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="hud"><div>Score <span id="scoreVal">0</span></div><div id="timer">2:00</div></div>
-<div id="size"></div>
+<div id="hud"><div>Level <span id="lvlVal">1</span></div><div>Score <span id="scoreVal">0</span></div><div id="timer">1:30</div></div>
+<div id="barWrap"><div id="barFill"></div></div>
+<div id="barLabel"></div>
+
 <div class="overlay" id="startScreen">
-  <h1>🕳️ Gatenspel 3D</h1>
-  <p>Sleep met je vinger om het gat te bewegen. Slok mensen, auto's, bomen en zelfs hele huizen op — en word gigantisch! 😋</p>
-  <button class="btn" onclick="startGame()">Spelen</button>
+  <h1>🕳️🎖️ Tunnel Basis</h1>
+  <p>Je bent een geheime tunnel op de legerbasis! Sleep met je vinger en slok tentjes, jeeps en helikopters op om op te ruimen. Word groot genoeg om het level te halen — maar pas op: de jeeps rijden weg! 🚙💨</p>
+  <button class="btn" onclick="startLevel(1)">Start missie</button>
+</div>
+<div class="overlay" id="levelScreen" style="display:none">
+  <div class="party"><span>🎉</span><span>⭐</span><span>🎖️</span><span>⭐</span><span>🎊</span></div>
+  <h1 id="lvlTitle">Level klaar!</h1>
+  <p id="lvlMsg"></p>
+  <button class="btn" id="lvlBtn">Volgende level →</button>
 </div>
 <div class="overlay" id="endScreen" style="display:none">
   <h1 id="endTitle">Tijd om!</h1>
   <p id="endMsg"></p>
-  <button class="btn" onclick="startGame()">Nog een keer!</button>
+  <button class="btn" onclick="startLevel(1)">Opnieuw proberen</button>
 </div>
 
 <script>
@@ -42,47 +57,71 @@ let W,H,DPR;
 function resize(){ DPR=Math.min(devicePixelRatio||1,2); W=innerWidth; H=innerHeight; cv.width=W*DPR; cv.height=H*DPR; cv.style.width=W+'px'; cv.style.height=H+'px'; ctx.setTransform(DPR,0,0,DPR,0,0); }
 addEventListener('resize',resize); resize();
 
-// ---------- isometrische projectie ----------
-const ISO=0.5;                 // 2:1 iso
-function proj(wx,wy,wz){ return { x:(wx-wy), y:(wx+wy)*ISO - (wz||0) }; }
-
+const ISO=0.5;
+function proj(wx,wy,wz){ return { x:(wx-wy), y:(wx+wy)*ISO-(wz||0) }; }
 const WORLD=2000;
 const rand=(a,b)=>a+Math.random()*(b-a);
 const pick=a=>a[(Math.random()*a.length)|0];
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
 
-// object-soorten: [emoji, straal, hoogte, kleur, punten]
+// [emoji, straal, hoogte, kleur, punten, beweegt?]
 const TYPES=[
-  ['🌳',16,34,'#3a7d44',1],['🌲',15,40,'#2d6a4f',1],['🚦',10,30,'#e63946',1],
-  ['🧍',9,26,'#f4a261',2],['🧑',9,26,'#e9c46a',2],['🐕',9,16,'#b5838d',2],['🚲',12,18,'#457b9d',2],
-  ['🚗',20,20,'#e76f51',4],['🚕',20,20,'#ffb703',4],['🌴',16,44,'#2a9d8f',3],['⛲',22,24,'#48cae4',4],
-  ['🚌',28,26,'#f77f00',7],['🚚',30,26,'#8ecae6',7],['🏠',40,52,'#ffb4a2',10],['🏡',42,54,'#cdb4db',10],
-  ['🏢',52,90,'#a2d2ff',16],['🏬',56,80,'#bde0fe',16],['🗼',48,120,'#adb5bd',20],['🎡',60,110,'#ff85a1',24]
+  ['🚧',11,20,'#d9a441',1,0],['🛢️',10,24,'#8a9a5b',1,0],['🪖',9,16,'#4b5320',2,0],
+  ['📦',11,18,'#b08d57',1,0],['🛞',9,14,'#3a3a3a',1,0],['🚩',9,30,'#c1440e',2,0],['🔦',8,14,'#c9c9a0',1,0],
+  ['⛺',22,34,'#6b8e23',3,0],['📡',18,40,'#a9a9a9',4,0],['🥁',12,20,'#8b5a2b',2,0],['🎺',12,22,'#d4af37',3,0],
+  ['🚙',20,20,'#556b2f',4,1],['🚗',19,20,'#6b8e23',4,1],['🏍️',15,18,'#5a6650',3,1],
+  ['🏕️',40,50,'#7d8b4e',10,0],['🚚',30,28,'#4b5320',7,1],['🚁',34,44,'#5a6650',9,0],
+  ['🗼',46,110,'#8a8a6a',18,0],['✈️',44,40,'#9aa7b0',14,0],['🎪',56,70,'#8fa050',18,0]
 ];
+const SMALL=TYPES.filter(t=>t[1]<=16), MID=TYPES.filter(t=>t[1]>16&&t[1]<=30), BIG=TYPES.filter(t=>t[1]>30);
 
-let hole,objects,particles,score,timeLeft,playing,lastT,shake,funText,funTimer;
+let hole,objects,particles,confetti,score,timeLeft,playing,shake,funText,funTimer,lastT;
+let level,target,lvlTime,lastHonk;
 
-function makeCity(){
+function levelCfg(n){ return {
+  target: 45 + (n-1)*40,
+  time:   Math.max(40, 95 - (n-1)*8),
+  movers: Math.min(16, 3 + (n-1)*2),
+  bigN:   18 + n*2,
+  fleeMul: 1 + (n-1)*0.18
+}; }
+
+function makeBase(cfg){
   objects=[];
-  const push=(n,filter)=>{ for(let i=0;i<n;i++){ const t=pick(TYPES.filter(filter)); objects.push({
-    x:rand(30,WORLD-30), y:rand(30,WORLD-30), e:t[0], r:t[1], h:t[2], c:t[3], pts:t[4],
-    eaten:false, fall:0, wob:rand(0,6.28) }); } };
-  push(160, t=>t[1]<=16);   // klein
-  push(70,  t=>t[1]>16&&t[1]<=30); // middel
-  push(26,  t=>t[1]>30);    // groot
+  const add=(n,pool)=>{ for(let i=0;i<n;i++){ const t=pick(pool); const o={ x:rand(30,WORLD-30), y:rand(30,WORLD-30),
+    e:t[0], r:t[1], h:t[2], c:t[3], pts:t[4], move:t[5], eaten:false, fall:0, wob:rand(0,6.28) };
+    if(o.move){ const a=rand(0,6.28), s=rand(35,60); o.vx=Math.cos(a)*s; o.vy=Math.sin(a)*s; o.base=s; }
+    objects.push(o); } };
+  add(150, SMALL);
+  // zorg voor genoeg bewegende voertuigen
+  const movers=TYPES.filter(t=>t[5]);
+  add(cfg.movers, movers);
+  add(60, MID);
+  add(cfg.bigN, BIG);
 }
 
-function startGame(){
-  startScreen.style.display='none'; endScreen.style.display='none';
+function startLevel(n){
+  startScreen.style.display='none'; levelScreen.style.display='none'; endScreen.style.display='none';
+  level=n; const cfg=levelCfg(n); target=cfg.target; lvlTime=cfg.time; window._cfg=cfg;
   hole={ x:WORLD/2, y:WORLD/2, r:24, tx:WORLD/2, ty:WORLD/2 };
-  makeCity(); particles=[]; score=0; timeLeft=120; playing=true; shake=0; funText=''; funTimer=0;
+  makeBase(cfg); particles=[]; confetti=[]; score=0; timeLeft=cfg.time; playing=true; shake=0; funText=''; funTimer=0; lastHonk=0;
   lastT=performance.now(); updateHUD(); requestAnimationFrame(loop);
 }
-function updateHUD(){ scoreVal.textContent=score; const m=timeLeft/60|0,s=timeLeft%60|0; timer.textContent=m+':'+String(s).padStart(2,'0'); document.getElementById('size').textContent='Gatgrootte: '+Math.round(hole.r); }
+
+function updateHUD(){
+  lvlVal.textContent=level; scoreVal.textContent=score;
+  const m=timeLeft/60|0,s=timeLeft%60|0; timer.textContent=m+':'+String(s).padStart(2,'0');
+  const p=clamp(score/target,0,1); barFill.style.width=(p*100)+'%';
+  const left=Math.max(0,target-score);
+  barLabel.textContent = left>0 ? ('Nog '+left+' punten tot level '+(level+1)) : 'Level gehaald! 🎉';
+}
 
 // ---------- geluid ----------
 let AC;
-function beep(freq,dur,type,vol){ try{ AC=AC||new (window.AudioContext||webkitAudioContext)(); const o=AC.createOscillator(),g=AC.createGain(); o.type=type||'sine'; o.frequency.value=freq; g.gain.value=vol||0.15; o.connect(g); g.connect(AC.destination); const t=AC.currentTime; o.start(t); o.frequency.exponentialRampToValueAtTime(freq*0.5,t+dur); g.gain.exponentialRampToValueAtTime(0.001,t+dur); o.stop(t+dur); }catch(e){} }
-function gulp(r){ beep(180+Math.min(r,400), 0.14, 'sine', 0.18); }
+function beep(f,d,t,v){ try{ AC=AC||new (window.AudioContext||webkitAudioContext)(); const o=AC.createOscillator(),g=AC.createGain(); o.type=t||'sine'; o.frequency.value=f; g.gain.value=v||0.15; o.connect(g); g.connect(AC.destination); const c=AC.currentTime; o.start(c); o.frequency.exponentialRampToValueAtTime(f*0.5,c+d); g.gain.exponentialRampToValueAtTime(0.001,c+d); o.stop(c+d);}catch(e){} }
+const gulp=r=>beep(180+Math.min(r,400),0.14,'sine',0.18);
+const honk=()=>beep(300,0.09,'square',0.08);
+function fanfare(){ [523,659,784,1047,1319].forEach((f,i)=>setTimeout(()=>beep(f,0.2,'triangle',0.18),i*120)); }
 
 // ---------- besturing ----------
 let dragging=false,dx0=0,dy0=0;
@@ -93,25 +132,25 @@ cv.addEventListener('touchend',e=>{e.preventDefault(); dragging=false;},{passive
 cv.addEventListener('mousedown',e=>{dragging=true; dx0=e.clientX; dy0=e.clientY;});
 addEventListener('mousemove',e=>{if(!dragging)return; mv(e.clientX-dx0,e.clientY-dy0); dx0=e.clientX; dy0=e.clientY;});
 addEventListener('mouseup',()=>dragging=false);
-// sleep-richting terug naar wereld-assen (iso omgekeerd)
-function mv(sdx,sdy){ if(!playing)return; const sp=2.2; const wx=(sdx*0.5 + sdy/ISO*0.5), wy=(-sdx*0.5 + sdy/ISO*0.5); hole.tx=Math.max(hole.r,Math.min(WORLD-hole.r,hole.tx+wx*sp)); hole.ty=Math.max(hole.r,Math.min(WORLD-hole.r,hole.ty+wy*sp)); }
+function mv(sdx,sdy){ if(!playing)return; const sp=2.2; const wx=(sdx*0.5+sdy/ISO*0.5), wy=(-sdx*0.5+sdy/ISO*0.5); hole.tx=clamp(hole.tx+wx*sp,hole.r,WORLD-hole.r); hole.ty=clamp(hole.ty+wy*sp,hole.r,WORLD-hole.r); }
 
-const CHEERS=['Smakelijk! 😋','Hap!','Mmm, lekker!','Boem! 💥','Nog meer!','Gulp!','Zo groot al?! 😮'];
+const CHEERS=['Hap! 😋','Boem! 💥','Opgeruimd!','Mmm!','Nog meer!','Gulp!','Goed bezig! 🎖️'];
 
 function loop(now){
   const dt=Math.min((now-lastT)/1000,0.05); lastT=now;
   if(playing){
-    timeLeft-=dt; if(timeLeft<=0){ timeLeft=0; return endGame(); }
+    timeLeft-=dt; if(timeLeft<=0){ timeLeft=0; return gameOver(); }
     hole.x+=(hole.tx-hole.x)*0.16; hole.y+=(hole.ty-hole.y)*0.16;
+    updateMovers(dt);
     for(const o of objects){
       if(o.eaten)continue;
       const d=Math.hypot(o.x-hole.x,o.y-hole.y);
       if(d<hole.r && o.r<hole.r*0.92){
-        o.eaten=true; o.fall=0; score+=o.pts; hole.r+=o.r*0.085;
-        shake=Math.min(14,shake+o.r*0.15); gulp(o.r);
-        if(o.r>28){ funText=pick(CHEERS); funTimer=0.9; }
+        o.eaten=true; o.fall=0; score+=o.pts; hole.r+=o.r*0.085; shake=Math.min(14,shake+o.r*0.15); gulp(o.r);
+        if(o.r>26){ funText=pick(CHEERS); funTimer=0.9; }
         for(let k=0;k<7;k++)particles.push({x:o.x,y:o.y,z:rand(0,20),vx:rand(-50,50),vy:rand(-50,50),vz:rand(30,90),life:0.6,c:o.c});
         updateHUD();
+        if(score>=target){ return levelDone(); }
       }
     }
     for(const o of objects) if(o.eaten&&o.fall<1){ o.fall+=dt*2.6; o.x+=(hole.x-o.x)*0.2; o.y+=(hole.y-o.y)*0.2; }
@@ -123,87 +162,106 @@ function loop(now){
   draw(); requestAnimationFrame(loop);
 }
 
-function draw(){
-  const cx=W/2, cy=H/2;
-  const p0=hole?proj(hole.x,hole.y,0):{x:0,y:0};
-  const shX=shake?rand(-shake,shake):0, shY=shake?rand(-shake,shake):0;
-  const ox=cx-p0.x+shX, oy=cy-p0.y+shY;      // camera offset
-  const S=(wx,wy,wz)=>{ const p=proj(wx,wy,wz); return{x:p.x+ox,y:p.y+oy}; };
+function updateMovers(dt){
+  const cfg=window._cfg||{fleeMul:1};
+  const movers=objects.filter(o=>o.move&&!o.eaten);
+  for(const o of movers){
+    // wegrijden voor het gat
+    const dxh=o.x-hole.x, dyh=o.y-hole.y, dh=Math.hypot(dxh,dyh)||1;
+    if(dh<300 && hole.r>o.r*0.4){ const f=(300-dh)/300*260*cfg.fleeMul; o.vx+=dxh/dh*f*dt; o.vy+=dyh/dh*f*dt; }
+    // snelheidslimiet
+    let s=Math.hypot(o.vx,o.vy); const max=o.base*(1.3)*cfg.fleeMul + (dh<300?70:0);
+    if(s>max){ o.vx=o.vx/s*max; o.vy=o.vy/s*max; }
+    o.x+=o.vx*dt; o.y+=o.vy*dt;
+    // stuiter tegen randen
+    if(o.x<20){o.x=20;o.vx=Math.abs(o.vx);} if(o.x>WORLD-20){o.x=WORLD-20;o.vx=-Math.abs(o.vx);}
+    if(o.y<20){o.y=20;o.vy=Math.abs(o.vy);} if(o.y>WORLD-20){o.y=WORLD-20;o.vy=-Math.abs(o.vy);}
+  }
+  // botsende jeeps die wegrijden
+  for(let i=0;i<movers.length;i++)for(let j=i+1;j<movers.length;j++){
+    const a=movers[i],b=movers[j]; const dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy)||1, min=a.r+b.r+6;
+    if(d<min){ const nx=dx/d,ny=dy/d, push=(min-d)/2;
+      a.x-=nx*push; a.y-=ny*push; b.x+=nx*push; b.y+=ny*push;
+      const sa=Math.hypot(a.vx,a.vy)||40, sb=Math.hypot(b.vx,b.vy)||40;
+      a.vx=-nx*sa; a.vy=-ny*sa; b.vx=nx*sb; b.vy=ny*sb;   // rij van elkaar weg
+      if(lastHonk<=0){ honk(); lastHonk=0.25; }
+    }
+  }
+  if(lastHonk>0)lastHonk-=dt;
+}
 
-  // lucht
-  const sky=ctx.createLinearGradient(0,0,0,H); sky.addColorStop(0,'#8ecae6'); sky.addColorStop(1,'#c3e8ff');
+function draw(){
+  const cx=W/2,cy=H/2; const p0=hole?proj(hole.x,hole.y,0):{x:0,y:0};
+  const shX=shake?rand(-shake,shake):0, shY=shake?rand(-shake,shake):0;
+  const ox=cx-p0.x+shX, oy=cy-p0.y+shY;
+  const S=(wx,wy,wz)=>{const p=proj(wx,wy,wz); return{x:p.x+ox,y:p.y+oy};};
+
+  const sky=ctx.createLinearGradient(0,0,0,H); sky.addColorStop(0,'#b7c4a0'); sky.addColorStop(1,'#d8dcc0');
   ctx.fillStyle=sky; ctx.fillRect(0,0,W,H);
 
-  // grond (iso vierkant)
-  ctx.beginPath();
-  const c0=S(0,0,0),c1=S(WORLD,0,0),c2=S(WORLD,WORLD,0),c3=S(0,WORLD,0);
-  ctx.moveTo(c0.x,c0.y); ctx.lineTo(c1.x,c1.y); ctx.lineTo(c2.x,c2.y); ctx.lineTo(c3.x,c3.y); ctx.closePath();
-  ctx.fillStyle='#6ab04c'; ctx.fill();
-  // straten-raster
-  ctx.strokeStyle='rgba(255,255,255,.18)'; ctx.lineWidth=10;
-  ctx.beginPath();
-  for(let g=0;g<=WORLD;g+=250){ let a=S(g,0),b=S(g,WORLD); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); let c=S(0,g),d=S(WORLD,g); ctx.moveTo(c.x,c.y); ctx.lineTo(d.x,d.y);} ctx.stroke();
+  // grond (camo-groen)
+  const c0=S(0,0),c1=S(WORLD,0),c2=S(WORLD,WORLD),c3=S(0,WORLD);
+  ctx.beginPath(); ctx.moveTo(c0.x,c0.y); ctx.lineTo(c1.x,c1.y); ctx.lineTo(c2.x,c2.y); ctx.lineTo(c3.x,c3.y); ctx.closePath();
+  ctx.fillStyle='#6b7d3a'; ctx.fill();
+  // camo-vlekken
+  ctx.fillStyle='rgba(74,86,45,.55)';
+  for(let gx=120;gx<WORLD;gx+=340)for(let gy=200;gy<WORLD;gy+=300){ const s=S(gx,gy); ctx.beginPath(); ctx.save(); ctx.translate(s.x,s.y); ctx.scale(1,ISO); ctx.arc(0,0,70,0,6.2832); ctx.fill(); ctx.restore(); }
+  ctx.fillStyle='rgba(194,178,128,.4)';
+  for(let gx=260;gx<WORLD;gx+=360)for(let gy=90;gy<WORLD;gy+=320){ const s=S(gx,gy); ctx.beginPath(); ctx.save(); ctx.translate(s.x,s.y); ctx.scale(1,ISO); ctx.arc(0,0,50,0,6.2832); ctx.fill(); ctx.restore(); }
+  // paden
+  ctx.strokeStyle='rgba(210,200,150,.35)'; ctx.lineWidth=14;
+  ctx.beginPath(); for(let g=0;g<=WORLD;g+=400){ let a=S(g,0),b=S(g,WORLD); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); let c=S(0,g),d=S(WORLD,g); ctx.moveTo(c.x,c.y); ctx.lineTo(d.x,d.y);} ctx.stroke();
 
   if(!hole)return;
 
-  // ---- teken-lijst: gat + objecten, gesorteerd op diepte ----
   const items=objects.filter(o=>!(o.eaten&&o.fall>=1)).slice();
   items.push({isHole:true,x:hole.x,y:hole.y});
   items.sort((a,b)=>(a.x+a.y)-(b.x+b.y));
+  for(const it of items){ if(it.isHole)drawHole(S); else drawObj(it,S); }
 
-  for(const it of items){
-    if(it.isHole){ drawHole(S); continue; }
-    drawObj(it,S);
-  }
-
-  // deeltjes
   for(const p of particles){ const s=S(p.x,p.y,p.z); ctx.globalAlpha=Math.max(0,p.life*1.6); ctx.fillStyle=p.c; ctx.fillRect(s.x-3,s.y-3,6,6); }
   ctx.globalAlpha=1;
 
-  // grappige tekst
-  if(funTimer>0){ ctx.globalAlpha=Math.min(1,funTimer*2); ctx.fillStyle='#fff'; ctx.strokeStyle='rgba(0,0,0,.5)'; ctx.lineWidth=4; ctx.font='800 34px -apple-system,sans-serif'; ctx.textAlign='center'; const hp=S(hole.x,hole.y,hole.r+40); ctx.strokeText(funText,hp.x,hp.y); ctx.fillText(funText,hp.x,hp.y); ctx.globalAlpha=1; ctx.textAlign='left'; }
+  if(funTimer>0){ ctx.globalAlpha=Math.min(1,funTimer*2); ctx.fillStyle='#fff'; ctx.strokeStyle='rgba(0,0,0,.5)'; ctx.lineWidth=4; ctx.font='800 32px -apple-system,sans-serif'; ctx.textAlign='center'; const hp=S(hole.x,hole.y,hole.r+40); ctx.strokeText(funText,hp.x,hp.y); ctx.fillText(funText,hp.x,hp.y); ctx.globalAlpha=1; ctx.textAlign='left'; }
 }
 
 function drawHole(S){
-  const b=S(hole.x,hole.y,0); const rx=hole.r, ry=hole.r*ISO;
-  // schaduwrand
+  const b=S(hole.x,hole.y,0);
   ctx.save(); ctx.translate(b.x,b.y); ctx.scale(1,ISO);
   const g=ctx.createRadialGradient(0,0,hole.r*0.2,0,0,hole.r);
-  g.addColorStop(0,'#000'); g.addColorStop(.85,'#050510'); g.addColorStop(1,'#2a2a45');
+  g.addColorStop(0,'#000'); g.addColorStop(.85,'#0a0d05'); g.addColorStop(1,'#3b4a2f');
   ctx.fillStyle=g; ctx.beginPath(); ctx.arc(0,0,hole.r,0,6.2832); ctx.fill();
-  ctx.strokeStyle='rgba(255,255,255,.22)'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(0,0,hole.r,0,6.2832); ctx.stroke();
+  ctx.strokeStyle='rgba(255,255,255,.2)'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(0,0,hole.r,0,6.2832); ctx.stroke();
   ctx.restore();
 }
 
 function drawObj(o,S){
   const wob=o.eaten?0:Math.sin(performance.now()/500+o.wob)*1.2;
-  const h=o.h*(o.eaten?Math.max(0,1-o.fall):1);
-  const scale=o.eaten?Math.max(0,1-o.fall):1;
-  if(scale<=0.02)return;
-  const r=o.r*scale;
-  // 3D-doosje: bodem op z=0, top op z=h
-  const bx=o.x, by=o.y;
+  const scale=o.eaten?Math.max(0,1-o.fall):1; if(scale<=0.02)return;
+  const h=o.h*scale, r=o.r*scale, bx=o.x, by=o.y;
   const A=S(bx-r,by-r,0),B=S(bx+r,by-r,0),C=S(bx+r,by+r,0),D=S(bx-r,by+r,0);
   const At=S(bx-r,by-r,h),Bt=S(bx+r,by-r,h),Ct=S(bx+r,by+r,h),Dt=S(bx-r,by+r,h);
-  const shade=(hex,f)=>{ const n=parseInt(hex.slice(1),16); let R=(n>>16)*f,Gg=((n>>8)&255)*f,Bb=(n&255)*f; return`rgb(${R|0},${Gg|0},${Bb|0})`; };
-  // schaduw op grond
-  ctx.fillStyle='rgba(0,0,0,.15)'; ctx.beginPath(); const sh=S(bx,by,0); ctx.save(); ctx.translate(sh.x,sh.y+3); ctx.scale(1,ISO); ctx.arc(0,0,r*1.1,0,6.2832); ctx.fill(); ctx.restore();
-  // rechter zijvlak
+  const shade=(hex,f)=>{ const n=parseInt(hex.slice(1),16); return`rgb(${(n>>16)*f|0},${((n>>8)&255)*f|0},${(n&255)*f|0})`; };
+  const sh=S(bx,by,0); ctx.fillStyle='rgba(0,0,0,.15)'; ctx.save(); ctx.translate(sh.x,sh.y+3); ctx.scale(1,ISO); ctx.beginPath(); ctx.arc(0,0,r*1.1,0,6.2832); ctx.fill(); ctx.restore();
   ctx.fillStyle=shade(o.c,.65); ctx.beginPath(); ctx.moveTo(B.x,B.y+wob); ctx.lineTo(C.x,C.y+wob); ctx.lineTo(Ct.x,Ct.y+wob); ctx.lineTo(Bt.x,Bt.y+wob); ctx.fill();
-  // linker zijvlak
   ctx.fillStyle=shade(o.c,.5); ctx.beginPath(); ctx.moveTo(D.x,D.y+wob); ctx.lineTo(C.x,C.y+wob); ctx.lineTo(Ct.x,Ct.y+wob); ctx.lineTo(Dt.x,Dt.y+wob); ctx.fill();
-  // topvlak
   ctx.fillStyle=shade(o.c,1); ctx.beginPath(); ctx.moveTo(At.x,At.y+wob); ctx.lineTo(Bt.x,Bt.y+wob); ctx.lineTo(Ct.x,Ct.y+wob); ctx.lineTo(Dt.x,Dt.y+wob); ctx.closePath(); ctx.fill();
-  // emoji bovenop
   if(scale>0.4){ const top=S(bx,by,h); ctx.font=(r*1.5|0)+'px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(o.e,top.x,top.y-r*0.3+wob); ctx.textAlign='left'; ctx.textBaseline='alphabetic'; }
 }
 
-function endGame(){
+function levelDone(){
+  playing=false; fanfare();
+  lvlTitle.textContent='Level '+level+' geklaard! 🎖️';
+  lvlMsg.innerHTML='Top gedaan! Je scoorde <b>'+score+'</b> punten.<br>Klaar voor level <b>'+(level+1)+'</b>? Het wordt lastiger! 💪';
+  lvlBtn.textContent='Level '+(level+1)+' →';
+  lvlBtn.onclick=()=>startLevel(level+1);
+  levelScreen.style.display='flex';
+}
+
+function gameOver(){
   playing=false;
-  let rank='een klein gaatje 🐣';
-  if(hole.r>60)rank='een flink gat 👍'; if(hole.r>110)rank='een MEGA gat! 🔥'; if(hole.r>180)rank='een STAD-verslindend monstergat! 🌍😱';
-  endTitle.textContent='Tijd om! 🎉';
-  endMsg.innerHTML='Je scoorde <b>'+score+'</b> punten<br>en groeide uit tot <b>'+rank+'</b>';
+  endTitle.textContent='Tijd om! ⏰';
+  endMsg.innerHTML='Je kwam tot <b>level '+level+'</b> met <b>'+score+'</b> punten.<br>Je had nog '+Math.max(0,target-score)+' punten nodig. Nog een keer?';
   endScreen.style.display='flex';
 }
 </script>
