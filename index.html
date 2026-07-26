@@ -26,6 +26,10 @@
   .party span:nth-child(2){animation-delay:.15s} .party span:nth-child(3){animation-delay:.3s}
   .party span:nth-child(4){animation-delay:.45s} .party span:nth-child(5){animation-delay:.6s}
   @keyframes pop { 0%,100%{transform:translateY(0) rotate(-6deg)} 50%{transform:translateY(-16px) rotate(6deg)} }
+  #settings { width:100%; max-width:420px; margin-bottom:24px; text-align:left; }
+  #settings label { display:block; font-size:15px; font-weight:700; margin:12px 0 5px; }
+  #settings input[type=range] { width:100%; height:26px; accent-color:#a7c957; }
+  #settings b { color:#ffd166; }
 </style>
 </head>
 <body>
@@ -36,7 +40,13 @@
 
 <div class="overlay" id="startScreen">
   <h1>🕳️🎖️ Tunnel Basis</h1>
-  <p>Je bent een klein tunneltje op de legerbasis. Slok eerst kleine dingen op om te groeien — pas als je groter bent passen jeeps, tenten en uiteindelijk hele gebouwen erin! Word zo groot mogelijk en haal het puntendoel. 🚁</p>
+  <p>Je bent een klein tunneltje op de legerbasis. Slok eerst kleine dingen op om te groeien — pas als je groter bent passen jeeps, tenten en uiteindelijk hele gebouwen erin! 🚁</p>
+  <div id="settings">
+    <label>🎯 Punten per level: <b id="vTarget">1000</b></label>
+    <input type="range" id="sTarget" min="200" max="5000" step="50" value="1000">
+    <label>⏱️ Tijd per level: <b id="vTime">3:00</b></label>
+    <input type="range" id="sTime" min="60" max="420" step="10" value="180">
+  </div>
   <button class="btn" onclick="startLevel(1)">Start missie</button>
 </div>
 <div class="overlay" id="levelScreen" style="display:none">
@@ -78,9 +88,18 @@ const TROOP=[['🚶',9,26,'#4b5320',4],['🧍',9,26,'#6b7d3a',4]];
 let hole,objects,particles,score,timeLeft,playing,shake,funText,funTimer,lastT;
 let level,target,lastHonk,cfg,clouds,sizeStep,zoom;
 
+const SET=(()=>{try{return JSON.parse(localStorage.getItem('tb_set'))||{}}catch(e){return {}}})();
+SET.target=SET.target||1000; SET.time=SET.time||180;
+const fmtT=s=>(s/60|0)+':'+String(s%60|0).padStart(2,'0');
+(function initSettings(){ const st=document.getElementById('sTarget'),ti=document.getElementById('sTime'),vt=document.getElementById('vTarget'),vi=document.getElementById('vTime');
+  const save=()=>{try{localStorage.setItem('tb_set',JSON.stringify(SET))}catch(e){}};
+  st.value=SET.target; ti.value=SET.time; vt.textContent=SET.target; vi.textContent=fmtT(SET.time);
+  st.oninput=()=>{SET.target=+st.value; vt.textContent=SET.target; save();};
+  ti.oninput=()=>{SET.time=+ti.value; vi.textContent=fmtT(SET.time); save();};
+})();
 function levelCfg(n){ return {
-  target: 650 + (n-1)*400,
-  time:   Math.max(170, 230 - (n-1)*8),
+  target: SET.target + (n-1)*Math.round(SET.target*0.5),
+  time:   SET.time,
   vehic:  6 + n,
   troops: 10 + (n-1)*2,
   bigN:   24 + n*3,
