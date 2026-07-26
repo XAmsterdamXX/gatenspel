@@ -30,13 +30,13 @@
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="hud"><div>Level <span id="lvlVal">1</span></div><div>Score <span id="scoreVal">0</span></div><div id="timer">3:00</div></div>
+<div id="hud"><div>Level <span id="lvlVal">1</span></div><div>Score <span id="scoreVal">0</span></div><div id="timer">2:30</div></div>
 <div id="barWrap"><div id="barFill"></div></div>
 <div id="barLabel"></div>
 
 <div class="overlay" id="startScreen">
   <h1>🕳️🎖️ Tunnel Basis</h1>
-  <p>Jij bent een geheime tunnel op de legerbasis! Sleep rustig met je vinger en ruim de basis op: slok tentjes, jeeps, radars en helikopters op en word gigantisch. Militairen 🚶 en jeeps 🚙 lopen en rijden weg — pak ze te grazen!</p>
+  <p>Je bent een klein tunneltje op de legerbasis. Slok eerst kleine dingen op om te groeien — pas als je groter bent passen jeeps, tenten en uiteindelijk hele gebouwen erin! Word zo groot mogelijk en haal het puntendoel. 🚁</p>
   <button class="btn" onclick="startLevel(1)">Start missie</button>
 </div>
 <div class="overlay" id="levelScreen" style="display:none">
@@ -54,46 +54,51 @@
 <script>
 const cv=document.getElementById('game'), ctx=cv.getContext('2d');
 let W,H,DPR;
-function resize(){ DPR=Math.min(devicePixelRatio||1,2); W=innerWidth; H=innerHeight; cv.width=W*DPR; cv.height=H*DPR; cv.style.width=W+'px'; cv.style.height=H+'px'; ctx.setTransform(DPR,0,0,DPR,0,0); }
+function resize(){ DPR=Math.min(devicePixelRatio||1,2); W=innerWidth; H=innerHeight; cv.width=W*DPR; cv.height=H*DPR; cv.style.width=W+'px'; cv.style.height=H+'px'; }
 addEventListener('resize',resize); resize();
 
 const ISO=0.5;
 const proj=(wx,wy,wz)=>({ x:(wx-wy), y:(wx+wy)*ISO-(wz||0) });
-const WORLD=2200;
+const WORLD=2600;
 const rand=(a,b)=>a+Math.random()*(b-a);
 const pick=a=>a[(Math.random()*a.length)|0];
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
 const now=()=>performance.now();
 
-// vaste, niet-bewegende dingen: [emoji, straal, hoogte, kleur, punten]
-const SMALL=[['🚧',11,20,'#d9a441',1],['🛢️',10,24,'#8a9a5b',1],['📦',11,18,'#b08d57',1],['🛞',9,14,'#3a3a3a',1],['🚩',9,30,'#c1440e',2],['🔦',8,14,'#c9c9a0',1],['🪖',9,16,'#4b5320',2],['🎵',8,14,'#d4af37',1]];
-const MID=[['⛺',22,34,'#6b8e23',3],['📡',18,42,'#a9a9a9',4],['🥁',12,20,'#8b5a2b',2],['🎺',12,22,'#d4af37',3],['🛖',24,36,'#7d8b4e',4],['🚏',14,34,'#9aa38a',2]];
-const BIG=[['🏕️',40,50,'#7d8b4e',10],['🚁',34,44,'#5a6650',9],['🗼',46,110,'#8a8a6a',18],['✈️',44,40,'#9aa7b0',14],['🎪',56,70,'#8fa050',18],['🏭',50,80,'#8a8f7a',16]];
-// voertuigen (rijden rond): [emoji, straal, hoogte, kleur, punten, snelheid]
-const VEHIC=[['🚙',20,20,'#556b2f',5,50],['🚗',19,20,'#6b8e23',5,55],['🏍️',15,18,'#5a6650',4,60],['🚚',30,28,'#4b5320',8,38]];
-// militairen (lopen rond)
-const TROOP=[['🚶',9,26,'#4b5320',3],['🧍',9,26,'#6b7d3a',3],['🚶',9,26,'#556b2f',3]];
+// maat-tiers  [emoji, straal, hoogte, kleur, punten]
+const SMALL=[['🚧',9,16,'#d9a441',2],['🛢️',9,22,'#8a9a5b',2],['📦',10,16,'#b08d57',2],['🛞',8,12,'#3a3a3a',1],['🚩',8,26,'#c1440e',2],['🔦',7,12,'#c9c9a0',1],['🪖',9,15,'#4b5320',2],['🎵',7,12,'#d4af37',1],['🔧',8,10,'#9aa38a',1]];
+const MID=[['⛺',22,34,'#6b8e23',9],['📡',22,46,'#a9a9a9',11],['🛖',24,38,'#7d8b4e',10],['🚏',18,32,'#9aa38a',7],['🎠',24,40,'#8fa050',10]];
+const BIG=[['🏕️',46,56,'#7d8b4e',34],['🎪',58,72,'#8fa050',42],['🏭',54,84,'#8a8f7a',40],['🏛️',52,78,'#b8b090',40]];
+const FLY=[['🚁',40,52,'#5a6650',30],['✈️',48,44,'#9aa7b0',34]];
+const HUGE=[['🗼',110,150,'#8a8a6a',120],['🏢',100,150,'#a2b0bd',110],['🏬',108,140,'#9fb0a0',115]];
+// bewegend
+const VEHIC=[['🚙',18,20,'#556b2f',12,50],['🚗',18,20,'#6b8e23',12,55],['🏍️',14,18,'#5a6650',9,62],['🚚',30,28,'#4b5320',22,38],['🚌',30,30,'#6b7d3a',22,36]];
+const TROOP=[['🚶',9,26,'#4b5320',4],['🧍',9,26,'#6b7d3a',4]];
 
 let hole,objects,particles,score,timeLeft,playing,shake,funText,funTimer,lastT;
-let level,target,lastHonk,cfg,clouds,sizeStep;
+let level,target,lastHonk,cfg,clouds,sizeStep,zoom;
 
 function levelCfg(n){ return {
-  target: 240 + (n-1)*140,          // veel hogere doelen -> lange levels
-  time:   Math.max(150, 200 - (n-1)*6),  // ruime tijd (2.5 - 3+ min)
-  vehic:  Math.min(12, 4 + n),
-  troops: Math.min(22, 10 + (n-1)*3),
-  bigN:   26 + n*2,
-  fleeMul:1 + (n-1)*0.22            // iets moeilijker: sneller vluchten
+  target: 240 + (n-1)*130,
+  time:   Math.max(120, 160 - (n-1)*8),
+  vehic:  5 + n,
+  troops: 8 + (n-1)*2,
+  bigN:   14 + n*2,
+  hugeN:  3 + (n/2|0),
+  fleeMul:1 + (n-1)*0.22
 }; }
 
-function spawn(t,extra){ const o={ x:rand(30,WORLD-30), y:rand(30,WORLD-30), e:t[0], r:t[1], h:t[2], c:t[3], pts:t[4], eaten:false, fall:0, wob:rand(0,6.28) }; Object.assign(o,extra||{}); if(o.move){ const a=rand(0,6.28), s=o.base; o.vx=Math.cos(a)*s; o.vy=Math.sin(a)*s; } objects.push(o); return o; }
+function spawn(t,extra){ const o={ x:rand(40,WORLD-40), y:rand(40,WORLD-40), e:t[0], r:t[1], h:t[2], c:t[3], pts:t[4], eaten:false, fall:0, wob:rand(0,6.28) }; Object.assign(o,extra||{}); if(o.move){ const a=rand(0,6.28); o.vx=Math.cos(a)*o.base; o.vy=Math.sin(a)*o.base; } objects.push(o); return o; }
 
+function farPos(min){ let x,y; do{ x=rand(40,WORLD-40); y=rand(40,WORLD-40); }while(Math.hypot(x-WORLD/2,y-WORLD/2)<min); return {x,y}; }
 function makeBase(){
   objects=[];
-  for(let i=0;i<140;i++) spawn(pick(SMALL));
-  for(let i=0;i<65;i++)  spawn(pick(MID));
-  for(let i=0;i<cfg.bigN;i++) spawn(pick(BIG));
-  for(let i=0;i<cfg.vehic;i++){ const t=pick(VEHIC); spawn(t,{move:1,kind:'car',base:t[5]}); }
+  for(let i=0;i<150;i++) spawn(pick(SMALL));
+  for(let i=0;i<60;i++)  spawn(pick(MID), farPos(120));
+  for(let i=0;i<cfg.bigN;i++) spawn(pick(BIG), farPos(280));
+  for(let i=0;i<6;i++)   spawn(pick(FLY), Object.assign({fly:1}, farPos(280)));
+  for(let i=0;i<cfg.hugeN;i++) spawn(pick(HUGE), farPos(520));
+  for(let i=0;i<cfg.vehic;i++){ const t=pick(VEHIC); spawn(t,Object.assign({move:1,kind:'car',base:t[5]}, farPos(160))); }
   for(let i=0;i<cfg.troops;i++){ const t=pick(TROOP); spawn(t,{move:1,kind:'troop',base:rand(16,26),walk:t[0]}); }
 }
 
@@ -103,7 +108,7 @@ makeClouds();
 function startLevel(n){
   startScreen.style.display='none'; levelScreen.style.display='none'; endScreen.style.display='none';
   level=n; cfg=levelCfg(n); target=cfg.target;
-  hole={ x:WORLD/2, y:WORLD/2, r:24, tx:WORLD/2, ty:WORLD/2 };
+  hole={ x:WORLD/2, y:WORLD/2, r:20, tx:WORLD/2, ty:WORLD/2 };
   makeBase(); particles=[]; score=0; timeLeft=cfg.time; playing=true; shake=0; funText=''; funTimer=0; lastHonk=0; sizeStep=0;
   lastT=now(); updateHUD(); requestAnimationFrame(loop);
 }
@@ -122,14 +127,15 @@ function tone(f,d,t,v,slideTo){ try{ AC=AC||new (window.AudioContext||webkitAudi
 const sPop=()=>tone(rand(560,720),0.09,'triangle',0.12,300);
 const sGulp=r=>tone(200+Math.min(r,300),0.14,'sine',0.16,120);
 const sClank=()=>{ tone(340,0.06,'square',0.1,300); setTimeout(()=>tone(230,0.08,'square',0.09,160),55); };
-const sWhomp=()=>tone(120,0.32,'sine',0.22,55);
+const sWhomp=()=>tone(120,0.32,'sine',0.22,50);
+const sHuge=()=>{ tone(90,0.4,'sine',0.25,45); setTimeout(()=>tone(70,0.3,'sine',0.2,40),120); };
 const sTroop=()=>{ tone(500,0.1,'triangle',0.12,700); setTimeout(()=>tone(760,0.12,'triangle',0.1,500),90); };
 const sHonk=()=>tone(300,0.09,'square',0.08,300);
 const sChime=()=>{ tone(880,0.16,'sine',0.14,880); setTimeout(()=>tone(1245,0.2,'sine',0.12,1245),110); };
 function fanfare(){ [523,659,784,1047,1319,1568].forEach((f,i)=>setTimeout(()=>tone(f,0.22,'triangle',0.18,f),i*130)); }
-function eatSound(o){ if(o.kind==='troop')sTroop(); else if(o.kind==='car')sClank(); else if(o.r>30)sWhomp(); else if(o.r>16)sGulp(o.r); else sPop(); }
+function eatSound(o){ if(o.r>90)sHuge(); else if(o.kind==='troop')sTroop(); else if(o.kind==='car')sClank(); else if(o.r>34)sWhomp(); else if(o.r>16)sGulp(o.r); else sPop(); }
 
-// ---------- besturing (rustiger) ----------
+// ---------- besturing (rustig) ----------
 let dragging=false,dx0=0,dy0=0;
 const pt=e=>{const t=e.touches?e.touches[0]:e; return{x:t.clientX,y:t.clientY};};
 cv.addEventListener('touchstart',e=>{e.preventDefault(); if(AC&&AC.state==='suspended')AC.resume(); const p=pt(e); dragging=true; dx0=p.x; dy0=p.y;},{passive:false});
@@ -138,25 +144,28 @@ cv.addEventListener('touchend',e=>{e.preventDefault(); dragging=false;},{passive
 cv.addEventListener('mousedown',e=>{dragging=true; dx0=e.clientX; dy0=e.clientY;});
 addEventListener('mousemove',e=>{if(!dragging)return; mv(e.clientX-dx0,e.clientY-dy0); dx0=e.clientX; dy0=e.clientY;});
 addEventListener('mouseup',()=>dragging=false);
-const SENS=1.35;   // lager = rustiger
-function mv(sdx,sdy){ if(!playing)return; const wx=(sdx*0.5+sdy/ISO*0.5), wy=(-sdx*0.5+sdy/ISO*0.5); hole.tx=clamp(hole.tx+wx*SENS,hole.r,WORLD-hole.r); hole.ty=clamp(hole.ty+wy*SENS,hole.r,WORLD-hole.r); }
+// sleep-afstand omgezet naar wereld, gedeeld door zoom zodat gevoel gelijk blijft bij inzoomen
+const SENS=1.7;
+function mv(sdx,sdy){ if(!playing)return; const z=zoom||1.5; const wx=(sdx*0.5+sdy/ISO*0.5)*SENS/z, wy=(-sdx*0.5+sdy/ISO*0.5)*SENS/z; hole.tx=clamp(hole.tx+wx,hole.r,WORLD-hole.r); hole.ty=clamp(hole.ty+wy,hole.r,WORLD-hole.r); }
 
-const CHEERS=['Hap! 😋','Boem! 💥','Opgeruimd!','Mmm!','Nog meer!','Gulp!','Goed bezig! 🎖️','Wauw! 🤩'];
+const CHEERS=['Hap! 😋','Boem! 💥','Opgeruimd!','Mmm!','Nog meer!','Gulp!','Goed bezig! 🎖️','Wauw! 🤩','Groot! 💪'];
 
 function loop(t){
   const dt=Math.min((t-lastT)/1000,0.05); lastT=t;
   if(playing){
     timeLeft-=dt; if(timeLeft<=0){ timeLeft=0; return gameOver(); }
-    hole.x+=(hole.tx-hole.x)*0.12; hole.y+=(hole.ty-hole.y)*0.12;   // iets soepeler/rustiger
+    hole.x+=(hole.tx-hole.x)*0.12; hole.y+=(hole.ty-hole.y)*0.12;
     updateMovers(dt);
     for(const o of objects){
       if(o.eaten)continue;
       const d=Math.hypot(o.x-hole.x,o.y-hole.y);
-      if(d<hole.r && o.r<hole.r*0.92){
-        o.eaten=true; o.fall=0; score+=o.pts; hole.r+=o.r*0.10; shake=Math.min(14,shake+o.r*0.15); eatSound(o);
-        if(o.r>26){ funText=pick(CHEERS); funTimer=0.9; }
-        for(let k=0;k<7;k++)particles.push({x:o.x,y:o.y,z:rand(0,20),vx:rand(-50,50),vy:rand(-50,50),vz:rand(30,90),life:0.6,c:o.c});
-        const step=Math.floor(hole.r/25); if(step>sizeStep){ sizeStep=step; sChime(); }
+      if(d < hole.r + o.r*0.5 && o.r < hole.r*0.85){
+        o.eaten=true; o.fall=0; score+=o.pts;
+        hole.r=Math.sqrt(hole.r*hole.r + o.r*o.r*0.55);   // oppervlakte-groei: wordt trager naarmate je groeit
+        shake=Math.min(16,shake+o.r*0.12); eatSound(o);
+        if(o.r>24){ funText=pick(CHEERS); funTimer=0.9; }
+        for(let k=0;k<8;k++)particles.push({x:o.x,y:o.y,z:rand(0,20),vx:rand(-50,50),vy:rand(-50,50),vz:rand(30,90),life:0.6,c:o.c});
+        const step=Math.floor(hole.r/30); if(step>sizeStep){ sizeStep=step; sChime(); }
         updateHUD();
         if(score>=target){ return levelDone(); }
       }
@@ -175,14 +184,14 @@ function updateMovers(dt){
   const movers=objects.filter(o=>o.move&&!o.eaten);
   for(const o of movers){
     const dxh=o.x-hole.x, dyh=o.y-hole.y, dh=Math.hypot(dxh,dyh)||1;
-    const range=o.kind==='troop'?240:300;
-    if(dh<range && hole.r>o.r*0.4){ const f=(range-dh)/range*240*cfg.fleeMul; o.vx+=dxh/dh*f*dt; o.vy+=dyh/dh*f*dt; }
+    const range=o.kind==='troop'?230:300;
+    if(dh<range && hole.r>o.r*0.5){ const f=(range-dh)/range*240*cfg.fleeMul; o.vx+=dxh/dh*f*dt; o.vy+=dyh/dh*f*dt; }
     let s=Math.hypot(o.vx,o.vy); const max=o.base*1.3*cfg.fleeMul + (dh<range?60:0);
     if(s>max){ o.vx=o.vx/s*max; o.vy=o.vy/s*max; }
     o.x+=o.vx*dt; o.y+=o.vy*dt;
     if(o.x<20){o.x=20;o.vx=Math.abs(o.vx);} if(o.x>WORLD-20){o.x=WORLD-20;o.vx=-Math.abs(o.vx);}
     if(o.y<20){o.y=20;o.vy=Math.abs(o.vy);} if(o.y>WORLD-20){o.y=WORLD-20;o.vy=-Math.abs(o.vy);}
-    if(o.kind==='troop'){ o.e = (dh<range && hole.r>o.r*0.4) ? '🏃' : o.walk; }  // rennen bij gevaar
+    if(o.kind==='troop'){ o.e=(dh<range && hole.r>o.r*0.5)?'🏃':o.walk; }
   }
   const cars=movers.filter(o=>o.kind==='car');
   for(let i=0;i<cars.length;i++)for(let j=i+1;j<cars.length;j++){
@@ -195,84 +204,93 @@ function updateMovers(dt){
 }
 
 function draw(){
-  const t=now(), cx=W/2,cy=H/2; const p0=hole?proj(hole.x,hole.y,0):{x:0,y:0};
-  const shX=shake?rand(-shake,shake):0, shY=shake?rand(-shake,shake):0;
-  const ox=cx-p0.x+shX, oy=cy-p0.y+shY;
-  const S=(wx,wy,wz)=>{const p=proj(wx,wy,wz); return{x:p.x+ox,y:p.y+oy};};
+  const t=now(), cx=W/2,cy=H/2;
+  // dynamische zoom: begint dicht op de actie, zoomt uit terwijl je groeit
+  zoom = clamp( (46*Math.pow((hole?hole.r:20)/20,0.35)) / (hole?hole.r:20), 0.5, 2.3 );
 
+  // lucht + wolken (schermruimte)
+  ctx.setTransform(DPR,0,0,DPR,0,0);
   const sky=ctx.createLinearGradient(0,0,0,H); sky.addColorStop(0,'#a7bcd6'); sky.addColorStop(1,'#d8dcc0');
   ctx.fillStyle=sky; ctx.fillRect(0,0,W,H);
-  // drijvende wolken
   for(const c of clouds){ const bx=c.x*W, by=c.y*H, r=34*c.s; ctx.fillStyle='rgba(255,255,255,.7)';
     for(const [ex,ey,er] of [[-r,0,r],[0,-r*.6,r*1.2],[r,0,r],[r*.4,r*.3,r*.8],[-r*.5,r*.25,r*.7]]){ ctx.beginPath(); ctx.ellipse(bx+ex,by+ey,er,er*.7,0,0,6.2832); ctx.fill(); } }
 
+  if(!hole){ return; }
+  // wereld-transform met zoom, gecentreerd op het gat
+  const h=proj(hole.x,hole.y,0);
+  const shX=shake?rand(-shake,shake):0, shY=shake?rand(-shake,shake):0;
+  const Z=DPR*zoom;
+  ctx.setTransform(Z,0,0,Z, DPR*(cx+shX)-Z*h.x, DPR*(cy+shY)-Z*h.y);
+
   // grond
-  const c0=S(0,0),c1=S(WORLD,0),c2=S(WORLD,WORLD),c3=S(0,WORLD);
+  const c0=proj(0,0),c1=proj(WORLD,0),c2=proj(WORLD,WORLD),c3=proj(0,WORLD);
   ctx.beginPath(); ctx.moveTo(c0.x,c0.y); ctx.lineTo(c1.x,c1.y); ctx.lineTo(c2.x,c2.y); ctx.lineTo(c3.x,c3.y); ctx.closePath();
   ctx.fillStyle='#6b7d3a'; ctx.fill();
-  // camo-vlekken
   ctx.fillStyle='rgba(74,86,45,.5)';
-  for(let gx=120;gx<WORLD;gx+=360)for(let gy=200;gy<WORLD;gy+=320){ const s=S(gx,gy); ctx.save(); ctx.translate(s.x,s.y); ctx.scale(1,ISO); ctx.beginPath(); ctx.arc(0,0,72,0,6.2832); ctx.fill(); ctx.restore(); }
+  for(let gx=140;gx<WORLD;gx+=380)for(let gy=220;gy<WORLD;gy+=340){ const s=proj(gx,gy); ctx.save(); ctx.translate(s.x,s.y); ctx.scale(1,ISO); ctx.beginPath(); ctx.arc(0,0,80,0,6.2832); ctx.fill(); ctx.restore(); }
   ctx.fillStyle='rgba(194,178,128,.38)';
-  for(let gx=260;gx<WORLD;gx+=380)for(let gy=90;gy<WORLD;gy+=330){ const s=S(gx,gy); ctx.save(); ctx.translate(s.x,s.y); ctx.scale(1,ISO); ctx.beginPath(); ctx.arc(0,0,52,0,6.2832); ctx.fill(); ctx.restore(); }
-  // startbaan met strepen
-  ctx.strokeStyle='rgba(60,60,60,.35)'; ctx.lineWidth=64; let ra=S(300,1600),rb=S(1900,1600); ctx.beginPath(); ctx.moveTo(ra.x,ra.y); ctx.lineTo(rb.x,rb.y); ctx.stroke();
-  ctx.strokeStyle='rgba(255,255,220,.7)'; ctx.lineWidth=4; ctx.setLineDash([18,22]); ctx.beginPath(); ctx.moveTo(ra.x,ra.y); ctx.lineTo(rb.x,rb.y); ctx.stroke(); ctx.setLineDash([]);
-  // helikopterplatform (H)
-  const hp=S(600,600); ctx.save(); ctx.translate(hp.x,hp.y); ctx.scale(1,ISO); ctx.fillStyle='rgba(40,50,30,.5)'; ctx.beginPath(); ctx.arc(0,0,80,0,6.2832); ctx.fill(); ctx.strokeStyle='rgba(255,255,220,.8)'; ctx.lineWidth=8; ctx.beginPath(); ctx.arc(0,0,80,0,6.2832); ctx.stroke(); ctx.fillStyle='rgba(255,255,220,.85)'; ctx.fillRect(-30,-40,14,80); ctx.fillRect(16,-40,14,80); ctx.fillRect(-16,-8,32,16); ctx.restore();
-
-  if(!hole)return;
+  for(let gx=300;gx<WORLD;gx+=400)for(let gy=100;gy<WORLD;gy+=360){ const s=proj(gx,gy); ctx.save(); ctx.translate(s.x,s.y); ctx.scale(1,ISO); ctx.beginPath(); ctx.arc(0,0,56,0,6.2832); ctx.fill(); ctx.restore(); }
+  // startbaan
+  ctx.strokeStyle='rgba(60,60,60,.35)'; ctx.lineWidth=70; let ra=proj(300,1900),rb=proj(2300,1900); ctx.beginPath(); ctx.moveTo(ra.x,ra.y); ctx.lineTo(rb.x,rb.y); ctx.stroke();
+  ctx.strokeStyle='rgba(255,255,220,.7)'; ctx.lineWidth=5; ctx.setLineDash([20,26]); ctx.beginPath(); ctx.moveTo(ra.x,ra.y); ctx.lineTo(rb.x,rb.y); ctx.stroke(); ctx.setLineDash([]);
+  // helikopterplatform
+  const hpc=proj(700,700); ctx.save(); ctx.translate(hpc.x,hpc.y); ctx.scale(1,ISO); ctx.fillStyle='rgba(40,50,30,.5)'; ctx.beginPath(); ctx.arc(0,0,90,0,6.2832); ctx.fill(); ctx.strokeStyle='rgba(255,255,220,.8)'; ctx.lineWidth=9; ctx.beginPath(); ctx.arc(0,0,90,0,6.2832); ctx.stroke(); ctx.fillStyle='rgba(255,255,220,.85)'; ctx.fillRect(-34,-46,16,92); ctx.fillRect(18,-46,16,92); ctx.fillRect(-18,-10,36,20); ctx.restore();
 
   const items=objects.filter(o=>!(o.eaten&&o.fall>=1)).slice();
-  items.push({isHole:true,x:hole.x,y:hole.y});
   items.sort((a,b)=>(a.x+a.y)-(b.x+b.y));
-  for(const it of items){ if(it.isHole)drawHole(S); else drawObj(it,S,t); }
+  drawHole();                          // gat op de grond
+  for(const it of items) drawObj(it,t); // objecten eroverheen (steken uit boven de rand)
+  drawHole(true);                       // dunne rand nog eens bovenop zodat het gat altijd zichtbaar blijft
 
-  for(const p of particles){ const s=S(p.x,p.y,p.z); ctx.globalAlpha=Math.max(0,p.life*1.6); ctx.fillStyle=p.c; ctx.fillRect(s.x-3,s.y-3,6,6); }
+  for(const p of particles){ const s=proj(p.x,p.y,p.z); ctx.globalAlpha=Math.max(0,p.life*1.6); ctx.fillStyle=p.c; ctx.fillRect(s.x-3,s.y-3,6,6); }
   ctx.globalAlpha=1;
 
-  if(funTimer>0){ ctx.globalAlpha=Math.min(1,funTimer*2); ctx.fillStyle='#fff'; ctx.strokeStyle='rgba(0,0,0,.5)'; ctx.lineWidth=4; ctx.font='800 32px -apple-system,sans-serif'; ctx.textAlign='center'; const p=S(hole.x,hole.y,hole.r+40); ctx.strokeText(funText,p.x,p.y); ctx.fillText(funText,p.x,p.y); ctx.globalAlpha=1; ctx.textAlign='left'; }
+  if(funTimer>0){ ctx.globalAlpha=Math.min(1,funTimer*2); ctx.fillStyle='#fff'; ctx.strokeStyle='rgba(0,0,0,.5)'; ctx.lineWidth=2.5; ctx.font='800 17px -apple-system,sans-serif'; ctx.textAlign='center'; const p=proj(hole.x,hole.y,hole.r+34); ctx.strokeText(funText,p.x,p.y); ctx.fillText(funText,p.x,p.y); ctx.globalAlpha=1; ctx.textAlign='left'; }
+  ctx.setTransform(DPR,0,0,DPR,0,0);
 }
 
-function drawHole(S){
-  const b=S(hole.x,hole.y,0);
+function drawHole(ringOnly){
+  const b=proj(hole.x,hole.y,0);
   ctx.save(); ctx.translate(b.x,b.y); ctx.scale(1,ISO);
-  const g=ctx.createRadialGradient(0,0,hole.r*0.2,0,0,hole.r);
-  g.addColorStop(0,'#000'); g.addColorStop(.85,'#0a0d05'); g.addColorStop(1,'#3b4a2f');
-  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(0,0,hole.r,0,6.2832); ctx.fill();
-  ctx.strokeStyle='rgba(255,255,255,.2)'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(0,0,hole.r,0,6.2832); ctx.stroke();
+  if(!ringOnly){
+    const g=ctx.createRadialGradient(0,0,hole.r*0.2,0,0,hole.r);
+    g.addColorStop(0,'#000'); g.addColorStop(.85,'#0a0d05'); g.addColorStop(1,'#3b4a2f');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(0,0,hole.r,0,6.2832); ctx.fill();
+  }
+  ctx.strokeStyle=ringOnly?'rgba(255,255,255,.5)':'rgba(255,255,255,.2)'; ctx.lineWidth=ringOnly?3:2.5;
+  ctx.beginPath(); ctx.arc(0,0,hole.r,0,6.2832); ctx.stroke();
   ctx.restore();
 }
 
-function drawObj(o,S,t){
-  const fly=(o.e==='🚁'||o.e==='✈️');
+function drawObj(o,t){
+  const fly=o.fly;
   const bob=o.eaten?0:(o.kind==='troop'?Math.abs(Math.sin(t/160+o.wob))*4:Math.sin(t/500+o.wob)*1.4);
   const hover=fly&&!o.eaten?18+Math.sin(t/300+o.wob)*7:0;
   const scale=o.eaten?Math.max(0,1-o.fall):1; if(scale<=0.02)return;
-  const h=(o.h+hover)*scale, r=o.r*scale, bx=o.x, by=o.y;
-  const B=S(bx+r,by-r,0),C=S(bx+r,by+r,0),D=S(bx-r,by+r,0);
-  const At=S(bx-r,by-r,h),Bt=S(bx+r,by-r,h),Ct=S(bx+r,by+r,h),Dt=S(bx-r,by+r,h);
+  const hh=(o.h+hover)*scale, r=o.r*scale, bx=o.x, by=o.y;
+  const B=proj(bx+r,by-r,0),C=proj(bx+r,by+r,0),D=proj(bx-r,by+r,0);
+  const At=proj(bx-r,by-r,hh),Bt=proj(bx+r,by-r,hh),Ct=proj(bx+r,by+r,hh),Dt=proj(bx-r,by+r,hh);
   const shade=(hex,f)=>{ const n=parseInt(hex.slice(1),16); return`rgb(${(n>>16)*f|0},${((n>>8)&255)*f|0},${(n&255)*f|0})`; };
-  const sh=S(bx,by,0); ctx.fillStyle='rgba(0,0,0,.15)'; ctx.save(); ctx.translate(sh.x,sh.y+3); ctx.scale(1,ISO); ctx.beginPath(); ctx.arc(0,0,r*1.1,0,6.2832); ctx.fill(); ctx.restore();
+  const sh=proj(bx,by,0); ctx.fillStyle='rgba(0,0,0,.15)'; ctx.save(); ctx.translate(sh.x,sh.y+3); ctx.scale(1,ISO); ctx.beginPath(); ctx.arc(0,0,r*1.1,0,6.2832); ctx.fill(); ctx.restore();
   if(!fly){
     ctx.fillStyle=shade(o.c,.65); ctx.beginPath(); ctx.moveTo(B.x,B.y+bob); ctx.lineTo(C.x,C.y+bob); ctx.lineTo(Ct.x,Ct.y+bob); ctx.lineTo(Bt.x,Bt.y+bob); ctx.fill();
     ctx.fillStyle=shade(o.c,.5); ctx.beginPath(); ctx.moveTo(D.x,D.y+bob); ctx.lineTo(C.x,C.y+bob); ctx.lineTo(Ct.x,Ct.y+bob); ctx.lineTo(Dt.x,Dt.y+bob); ctx.fill();
     ctx.fillStyle=shade(o.c,1); ctx.beginPath(); ctx.moveTo(At.x,At.y+bob); ctx.lineTo(Bt.x,Bt.y+bob); ctx.lineTo(Ct.x,Ct.y+bob); ctx.lineTo(Dt.x,Dt.y+bob); ctx.closePath(); ctx.fill();
   }
-  if(scale>0.35){ const top=S(bx,by,h); ctx.font=(r*1.6|0)+'px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(o.e,top.x,top.y-r*0.3+bob); ctx.textAlign='left'; ctx.textBaseline='alphabetic'; }
+  if(scale>0.35){ const top=proj(bx,by,hh); ctx.font=(r*1.7|0)+'px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(o.e,top.x,top.y-r*0.3+bob); ctx.textAlign='left'; ctx.textBaseline='alphabetic'; }
 }
 
 function levelDone(){
   playing=false; fanfare();
   lvlTitle.textContent='Level '+level+' geklaard! 🎖️';
-  lvlMsg.innerHTML='Knap gedaan! Je scoorde <b>'+score+'</b> punten en je tunnel werd <b>'+Math.round(hole.r)+'</b> groot.<br>Level <b>'+(level+1)+'</b> wordt weer wat lastiger! 💪';
+  lvlMsg.innerHTML='Knap! Je scoorde <b>'+score+'</b> punten en je tunnel werd <b>'+Math.round(hole.r)+'</b> groot.<br>Level <b>'+(level+1)+'</b> wordt weer wat lastiger! 💪';
   lvlBtn.textContent='Level '+(level+1)+' →'; lvlBtn.onclick=()=>startLevel(level+1);
   levelScreen.style.display='flex';
 }
 function gameOver(){
   playing=false;
   endTitle.textContent='Tijd om! ⏰';
-  endMsg.innerHTML='Je kwam tot <b>level '+level+'</b> met <b>'+score+'</b> punten.<br>Je had nog '+Math.max(0,target-score)+' punten nodig. Nog een keer?';
+  endMsg.innerHTML='Je kwam tot <b>level '+level+'</b> met <b>'+score+'</b> punten (tunnel '+Math.round(hole.r)+' groot).<br>Je had nog '+Math.max(0,target-score)+' punten nodig. Nog een keer?';
   endScreen.style.display='flex';
 }
 </script>
