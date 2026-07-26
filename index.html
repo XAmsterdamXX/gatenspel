@@ -79,12 +79,12 @@ let hole,objects,particles,score,timeLeft,playing,shake,funText,funTimer,lastT;
 let level,target,lastHonk,cfg,clouds,sizeStep,zoom;
 
 function levelCfg(n){ return {
-  target: 240 + (n-1)*130,
-  time:   Math.max(120, 160 - (n-1)*8),
-  vehic:  5 + n,
-  troops: 8 + (n-1)*2,
-  bigN:   14 + n*2,
-  hugeN:  3 + (n/2|0),
+  target: 650 + (n-1)*400,
+  time:   Math.max(170, 230 - (n-1)*8),
+  vehic:  6 + n,
+  troops: 10 + (n-1)*2,
+  bigN:   24 + n*3,
+  hugeN:  5 + n,
   fleeMul:1 + (n-1)*0.22
 }; }
 
@@ -93,8 +93,8 @@ function spawn(t,extra){ const o={ x:rand(40,WORLD-40), y:rand(40,WORLD-40), e:t
 function farPos(min){ let x,y; do{ x=rand(40,WORLD-40); y=rand(40,WORLD-40); }while(Math.hypot(x-WORLD/2,y-WORLD/2)<min); return {x,y}; }
 function makeBase(){
   objects=[];
-  for(let i=0;i<150;i++) spawn(pick(SMALL));
-  for(let i=0;i<60;i++)  spawn(pick(MID), farPos(120));
+  for(let i=0;i<210;i++) spawn(pick(SMALL));
+  for(let i=0;i<95;i++)  spawn(pick(MID), farPos(120));
   for(let i=0;i<cfg.bigN;i++) spawn(pick(BIG), farPos(280));
   for(let i=0;i<6;i++)   spawn(pick(FLY), Object.assign({fly:1}, farPos(280)));
   for(let i=0;i<cfg.hugeN;i++) spawn(pick(HUGE), farPos(520));
@@ -161,7 +161,7 @@ function loop(t){
       const d=Math.hypot(o.x-hole.x,o.y-hole.y);
       if(d < hole.r + o.r*0.5 && o.r < hole.r*0.85){
         o.eaten=true; o.fall=0; score+=o.pts;
-        hole.r=Math.sqrt(hole.r*hole.r + o.r*o.r*0.55);   // oppervlakte-groei: wordt trager naarmate je groeit
+        hole.r=Math.sqrt(hole.r*hole.r + o.r*o.r*0.95);   // oppervlakte-groei: wordt trager naarmate je groeit
         shake=Math.min(16,shake+o.r*0.12); eatSound(o);
         if(o.r>24){ funText=pick(CHEERS); funTimer=0.9; }
         for(let k=0;k<8;k++)particles.push({x:o.x,y:o.y,z:rand(0,20),vx:rand(-50,50),vy:rand(-50,50),vz:rand(30,90),life:0.6,c:o.c});
